@@ -16,58 +16,18 @@ import {
 
 import { formatCurrency } from '@/lib/utils'
 import { IOrder } from '@/lib/db/models/order.model'
-import { getSetting } from '@/lib/actions/setting.actions'
 
-type OrderInformationProps = {
+type PurchaseReceiptEmailProps = {
   order: IOrder
+  siteUrl: string
 }
 
-PurchaseReceiptEmail.PreviewProps = {
-  order: {
-    _id: '123',
-    isPaid: true,
-    paidAt: new Date(),
-    totalPrice: 100,
-    itemsPrice: 100,
-    taxPrice: 0,
-    shippingPrice: 0,
-    user: {
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-    },
-    shippingAddress: {
-      fullName: 'John Doe',
-      street: '123 Main St',
-      city: 'New York',
-      postalCode: '12345',
-      country: 'USA',
-      phone: '123-456-7890',
-      province: 'New York',
-    },
-    items: [
-      {
-        clientId: '123',
-        name: 'Product 1',
-        image: 'https://via.placeholder.com/150',
-        price: 100,
-        quantity: 1,
-        product: '123',
-        slug: 'product-1',
-        category: 'Category 1',
-        countInStock: 10,
-      },
-    ],
-    paymentMethod: 'PayPal',
-    expectedDeliveryDate: new Date(),
-    isDelivered: true,
-  } as IOrder,
-} satisfies OrderInformationProps
 const dateFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'medium' })
 
-export default async function PurchaseReceiptEmail({
+export default function PurchaseReceiptEmail({
   order,
-}: OrderInformationProps) {
-  const { site } = await getSetting()
+  siteUrl,
+}: PurchaseReceiptEmailProps) {
   return (
     <Html>
       <Preview>View order receipt</Preview>
@@ -106,21 +66,21 @@ export default async function PurchaseReceiptEmail({
               {order.items.map((item) => (
                 <Row key={item.product} className='mt-8'>
                   <Column className='w-20'>
-                    <Link href={`${site.url}/product/${item.slug}`}>
+                    <Link href={`${siteUrl}/product/${item.slug}`}>
                       <Img
                         width='80'
                         alt={item.name}
                         className='rounded'
                         src={
                           item.image.startsWith('/')
-                            ? `${site.url}${item.image}`
+                            ? `${siteUrl}${item.image}`
                             : item.image
                         }
                       />
                     </Link>
                   </Column>
                   <Column className='align-top'>
-                    <Link href={`${site.url}/product/${item.slug}`}>
+                    <Link href={`${siteUrl}/product/${item.slug}`}>
                       <Text className='mx-2 my-0'>
                         {item.name} x {item.quantity}
                       </Text>
