@@ -25,7 +25,7 @@ export function HomeCarousel({ items }: { items: ICarousel[] }) {
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
-  const [setIsHovered] = useState(false)
+ const [, setIsHovered] = useState(false)
 
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: false })
@@ -83,7 +83,7 @@ export function HomeCarousel({ items }: { items: ICarousel[] }) {
         }}
       >
         <CarouselContent className='-ml-0'>
-          {items.map((item, index) => (
+          {items.map((item: any, index: number) => (
             <CarouselItem key={item.title} className='pl-0'>
               <Link href={item.url} className='block'>
                 <div className='relative w-full aspect-[16/9] md:aspect-[16/6] lg:aspect-[21/9] overflow-hidden'>
