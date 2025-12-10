@@ -1,40 +1,38 @@
-import Image from 'next/image'
-import Link from 'next/link'
-import React from 'react'
-import Menu from '@/components/shared/header/menu'
-import { AdminNav } from './admin-nav'
-import { getSetting } from '@/lib/actions/setting.actions'
+// app/admin/layout.tsx
+import { SidebarProvider } from '@/context/sidebar-context'
+import AdminSidebar from '@/components/shared/admin/AdminSidebar'
+import AdminHeader from '@/components/shared/admin/AdminHeader'
+import Footer from '@/components/shared/admin/Footer'
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { site } = await getSetting()
   return (
-    <>
-      <div className='flex flex-col'>
-        <div className='bg-black text-white'>
-          <div className='flex h-16 items-center px-2'>
-            <Link href='/'>
-              <Image
-                src='/icons/logo.svg'
-                width={48}
-                height={48}
-                alt={`${site.name} logo`}
-              />
-            </Link>
-            <AdminNav className='mx-6 hidden md:flex' />
-            <div className='ml-auto flex items-center space-x-4'>
-              <Menu forAdmin />
+    <SidebarProvider>
+      <div className="flex min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+        {/* الشريط الجانبي */}
+        <AdminSidebar />
+
+        {/* المنطقة الرئيسية */}
+        <div className="flex flex-1 flex-col min-w-0 w-full">
+          {/* الهيدر */}
+          <AdminHeader />
+
+          {/* المحتوى */}
+          <main className="flex-1 p-3 sm:p-4 lg:p-6">
+            <div className="mx-auto max-w-7xl">
+              <div className="rounded-xl sm:rounded-2xl border border-gray-800/50 bg-gray-900/50 backdrop-blur-sm p-4 sm:p-6 shadow-xl">
+                {children}
+              </div>
             </div>
-          </div>
-          <div>
-            <AdminNav className='flex md:hidden px-4 pb-2' />
-          </div>
+          </main>
+
+          {/* الفوتر */}
+          <Footer />
         </div>
-        <div className='flex-1 p-4'>{children}</div>
       </div>
-    </>
+    </SidebarProvider>
   )
 }

@@ -39,10 +39,12 @@ export const formatNumberWithDecimal = (num: number): string => {
 export const toSlug = (text: string): string =>
   text
     .toLowerCase()
-    .replace(/[^\w\s-]+/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .normalize('NFKD') // تفكيك الحروف العربية (مهم للبحث)
+    .replace(/[^\p{L}\p{N}\s-]/gu, '') // إزالة كل ما ليس حرفًا أو رقمًا أو مسافة/شرطة (يدعم Unicode)
+    .replace(/[\s_]+/g, '-')
     .replace(/-+/g, '-')
+    .trim()
+    .replace(/^-+|-+$/g, '')
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
   currency: 'USD',
