@@ -1,8 +1,9 @@
 {
-  "name": "nextjs-amazona",
+  "name": "almass-online",
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "vercel-build": "npm run build"
     "email": "email dev",
     "seed": "npx tsx ./lib/db/seed.ts",
     "dev": "next dev",
