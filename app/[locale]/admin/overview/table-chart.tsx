@@ -155,7 +155,7 @@ export default function TableChart({
     <div className="space-y-3">
       {dataWithPercentage.map(({ label, id, value, image, percentage, rank, color }) => {
         const isTopThree = rank <= 3
-        const RankIcon = color.icon
+        const RankIcon = (color as any).icon
 
         return (
           <div
