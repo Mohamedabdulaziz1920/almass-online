@@ -1,21 +1,20 @@
 // components/shared/header/sidebar.tsx
 import * as React from 'react'
 import Link from 'next/link'
-import { 
-  X, 
-  ChevronRight, 
+import {
+  X,
   ChevronLeft,
-  UserCircle, 
-  MenuIcon,
+  ChevronRight,
+  UserCircle,
+  Menu as MenuIcon,
   ShoppingBag,
-  Headphones,
+  Settings,
+  HelpCircle,
   LogOut,
   LogIn,
-  User,
-  Sparkles,
-  Layers,
-  Settings,
-  HelpCircle
+  Heart,
+  Package,
+  Grid3X3,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SignOut } from '@/lib/actions/user.actions'
@@ -23,7 +22,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -31,7 +29,8 @@ import {
 import { auth } from '@/auth'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getDirection } from '@/i18n-config'
-import { cn } from '@/lib/utils'
+import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 export default async function Sidebar({
   categories,
@@ -42,333 +41,258 @@ export default async function Sidebar({
   const locale = await getLocale()
   const t = await getTranslations()
   const isRTL = getDirection(locale) === 'rtl'
-  const ChevronIcon = isRTL ? ChevronLeft : ChevronRight
+
+  // أيقونات للتصنيفات (يمكنك تخصيصها)
+  const categoryIcons: Record<string, string> = {
+    'T-Shirts': '👕',
+    'Jeans': '👖',
+    'Shoes': '👟',
+    'Wrist Watches': '⌚',
+    'Electronics': '📱',
+    'Home': '🏠',
+    'Books': '📚',
+  }
 
   return (
     <Drawer direction={isRTL ? 'right' : 'left'}>
-      {/* ═══════════════════════════════════════════════════════════════════════
-          🔹 زر فتح القائمة
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <DrawerTrigger 
-        className='group flex items-center gap-2 px-4 py-2.5
-                   bg-gradient-to-r from-primary to-amber-500
-                   hover:from-primary/90 hover:to-amber-500/90
-                   text-primary-foreground font-medium text-sm
-                   rounded-xl
-                   shadow-lg shadow-primary/25
-                   hover:shadow-xl hover:shadow-primary/30
-                   hover:scale-[1.02] active:scale-[0.98]
-                   transition-all duration-300
-                   overflow-hidden relative'
+      <DrawerTrigger
+        className="
+          flex items-center gap-2 px-3 py-2
+          text-gray-300 hover:text-white
+          bg-transparent hover:bg-white/10
+          border border-transparent hover:border-gray-600
+          rounded-lg transition-all duration-300
+          group
+        "
       >
-        {/* 🔹 تأثير اللمعة */}
-        <span className='absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent
-                        translate-x-[-100%] group-hover:translate-x-[100%]
-                        transition-transform duration-700' />
-        
-        <MenuIcon className='h-5 w-5 group-hover:rotate-180 transition-transform duration-500' />
-        <span className='relative'>{t('Header.All')}</span>
+        <MenuIcon className="h-5 w-5 transition-transform group-hover:scale-110" />
+        <span className="font-medium text-sm">{t('Header.All')}</span>
       </DrawerTrigger>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          🔹 محتوى الـ Drawer
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <DrawerContent 
-        className={cn(
-          'w-[320px] sm:w-[380px] h-full mt-0 top-0',
-          'bg-gradient-to-b from-gray-900 via-gray-900 to-black',
-          'border-0 shadow-2xl'
-        )}
+      <DrawerContent
+        className="
+          w-[320px] sm:w-[360px] h-full
+          bg-gradient-to-b from-gray-900 via-gray-900 to-black
+          border-gray-800
+        "
       >
-        {/* 🔹 خلفية متوهجة */}
-        <div className='absolute inset-0 overflow-hidden pointer-events-none'>
-          <div className='absolute -top-32 -right-32 w-64 h-64 
-                          bg-primary/20 rounded-full blur-3xl animate-pulse' />
-          <div className='absolute top-1/2 -left-32 w-64 h-64 
-                          bg-amber-500/15 rounded-full blur-3xl animate-pulse' 
-               style={{ animationDelay: '1s' }} />
-          <div className='absolute -bottom-32 -right-32 w-64 h-64 
-                          bg-blue-500/15 rounded-full blur-3xl animate-pulse'
-               style={{ animationDelay: '0.5s' }} />
-        </div>
+        <div className="flex flex-col h-full">
+          {/* ═══════════════════ Header ═══════════════════ */}
+          <DrawerHeader className="p-0">
+            <div
+              className="
+                bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800
+                p-4 flex items-center justify-between
+              "
+            >
+              <DrawerTitle className="flex items-center gap-3 text-white">
+                <div
+                  className="
+                    w-10 h-10 rounded-full 
+                    bg-gradient-to-r from-primary to-amber-500
+                    flex items-center justify-center
+                    shadow-lg shadow-primary/30
+                  "
+                >
+                  <UserCircle className="h-5 w-5 text-primary-foreground" />
+                </div>
 
-        <div className='relative z-10 flex flex-col h-full'>
-          
-          {/* ═══════════════════════════════════════════════════════════════════
-              🔹 قسم المستخدم - User Section
-              ═══════════════════════════════════════════════════════════════════ */}
-          <div className='relative overflow-hidden'>
-            {/* 🔹 خلفية متدرجة */}
-            <div className='absolute inset-0 bg-gradient-to-br from-primary/90 via-amber-500/90 to-primary/90' />
-            
-            {/* 🔹 نمط زخرفي */}
-            <div className='absolute inset-0 opacity-10'>
-              <div className='absolute top-0 left-0 w-full h-full'
-                   style={{
-                     backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-                     backgroundSize: '24px 24px'
-                   }} />
+                {session ? (
+                  <DrawerClose asChild>
+                    <Link href="/account" className="group">
+                      <span className="text-lg font-semibold group-hover:text-primary transition-colors">
+                        {t('Header.Hello')}, {session.user.name}
+                      </span>
+                      <p className="text-xs text-gray-400">
+                        {t('Header.View your account')}
+                      </p>
+                    </Link>
+                  </DrawerClose>
+                ) : (
+                  <DrawerClose asChild>
+                    <Link href="/sign-in" className="group">
+                      <span className="text-lg font-semibold group-hover:text-primary transition-colors">
+                        {t('Header.Hello')}, {t('Header.sign in')}
+                      </span>
+                      <p className="text-xs text-gray-400">
+                        {t('Header.Sign in for best experience')}
+                      </p>
+                    </Link>
+                  </DrawerClose>
+                )}
+              </DrawerTitle>
+
+              <DrawerClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-400 hover:text-white hover:bg-white/10 rounded-full"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </DrawerClose>
             </div>
+          </DrawerHeader>
 
-            <div className='relative p-5'>
-              <div className='flex items-center justify-between'>
-                <DrawerHeader className='p-0 flex-1'>
-                  <DrawerTitle className='flex items-center gap-3'>
-                    {/* 🔹 صورة المستخدم */}
-                    <div className='relative'>
-                      <div className='absolute -inset-1 bg-white/30 rounded-full blur' />
-                      <div className='relative w-12 h-12 rounded-full 
-                                      bg-gradient-to-br from-white/20 to-white/5
-                                      border-2 border-white/30
-                                      flex items-center justify-center
-                                      shadow-lg'>
-                        {session ? (
-                          <span className='text-white text-lg font-bold'>
-                            {session.user.name?.charAt(0).toUpperCase()}
-                          </span>
-                        ) : (
-                          <UserCircle className='h-7 w-7 text-white' />
-                        )}
-                      </div>
-                      {/* 🔹 مؤشر Online */}
-                      {session && (
-                        <span className='absolute -bottom-0.5 -right-0.5 
-                                         w-4 h-4 rounded-full
-                                         bg-green-500 border-2 border-white
-                                         flex items-center justify-center'>
-                          <span className='w-2 h-2 rounded-full bg-green-300 animate-pulse' />
+          {/* ═══════════════════ Content ═══════════════════ */}
+          <ScrollArea className="flex-1">
+            {/* Quick Links */}
+            {session && (
+              <>
+                <div className="p-4">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    {t('Header.Quick Links')}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <DrawerClose asChild>
+                      <Link
+                        href="/account/orders"
+                        className="sidebar-quick-link"
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>{t('Header.Orders')}</span>
+                      </Link>
+                    </DrawerClose>
+                    <DrawerClose asChild>
+                      <Link href="/wishlist" className="sidebar-quick-link">
+                        <Heart className="h-4 w-4" />
+                        <span>{t('Header.Wishlist')}</span>
+                      </Link>
+                    </DrawerClose>
+                  </div>
+                </div>
+                <Separator className="bg-gray-800" />
+              </>
+            )}
+
+            {/* Categories */}
+            <div className="p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Grid3X3 className="h-3.5 w-3.5" />
+                {t('Header.Shop By Department')}
+              </p>
+
+              <nav className="space-y-1">
+                {categories.map((category, index) => (
+                  <DrawerClose asChild key={category}>
+                    <Link
+                      href={`/search?category=${category}`}
+                      className="
+                        flex items-center justify-between
+                        px-3 py-3 rounded-lg
+                        text-gray-300 hover:text-white
+                        bg-transparent hover:bg-white/5
+                        border border-transparent hover:border-gray-700
+                        transition-all duration-200
+                        group
+                      "
+                      style={{
+                        animationDelay: `${index * 50}ms`,
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">
+                          {categoryIcons[category] || '📦'}
                         </span>
-                      )}
-                    </div>
-                    
-                    {/* 🔹 معلومات المستخدم */}
-                    <div className='flex flex-col'>
-                      <span className='text-white/70 text-xs font-medium'>
-                        {t('Header.Hello')} 👋
-                      </span>
-                      {session ? (
-                        <DrawerClose asChild>
-                          <Link 
-                            href='/account'
-                            className='text-white text-lg font-bold hover:text-white/90 
-                                       transition-colors duration-200'
-                          >
-                            {session.user.name}
-                          </Link>
-                        </DrawerClose>
+                        <span className="font-medium">{category}</span>
+                      </div>
+                      {isRTL ? (
+                        <ChevronLeft className="h-4 w-4 text-gray-500 group-hover:text-primary group-hover:-translate-x-1 transition-all" />
                       ) : (
-                        <DrawerClose asChild>
-                          <Link 
-                            href='/sign-in'
-                            className='text-white text-lg font-bold hover:text-white/90 
-                                       transition-colors duration-200 flex items-center gap-1'
-                          >
-                            {t('Header.sign in')}
-                            <Sparkles className='w-4 h-4' />
-                          </Link>
-                        </DrawerClose>
+                        <ChevronRight className="h-4 w-4 text-gray-500 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                       )}
-                    </div>
-                  </DrawerTitle>
-                  <DrawerDescription className='sr-only'>
-                    Sidebar navigation menu
-                  </DrawerDescription>
-                </DrawerHeader>
+                    </Link>
+                  </DrawerClose>
+                ))}
+              </nav>
+            </div>
 
-                {/* 🔹 زر الإغلاق */}
+            <Separator className="bg-gray-800" />
+
+            {/* Help & Settings */}
+            <div className="p-4">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Settings className="h-3.5 w-3.5" />
+                {t('Header.Help & Settings')}
+              </p>
+
+              <nav className="space-y-1">
                 <DrawerClose asChild>
-                  <Button 
-                    variant='ghost' 
-                    size='icon' 
-                    className='w-10 h-10 rounded-xl
-                               bg-white/10 hover:bg-white/20
-                               text-white hover:text-white
-                               border border-white/20
-                               transition-all duration-200
-                               hover:rotate-90'
-                  >
-                    <X className='h-5 w-5' />
-                    <span className='sr-only'>Close</span>
-                  </Button>
-                </DrawerClose>
-              </div>
-            </div>
-          </div>
-
-          {/* ═══════════════════════════════════════════════════════════════════
-              🔹 قسم التصنيفات - Categories Section
-              ═══════════════════════════════════════════════════════════════════ */}
-          <div className='flex-1 overflow-y-auto custom-scrollbar'>
-            {/* 🔹 عنوان القسم */}
-            <div className='sticky top-0 z-10 p-4 
-                            bg-gray-900/95 backdrop-blur-sm
-                            border-b border-white/5'>
-              <div className='flex items-center gap-3'>
-                <div className='p-2 rounded-lg bg-gradient-to-br from-primary/20 to-amber-500/20
-                                border border-primary/20'>
-                  <Layers className='w-5 h-5 text-primary' />
-                </div>
-                <h2 className='text-white font-bold text-lg'>
-                  {t('Header.Shop By Department')}
-                </h2>
-              </div>
-            </div>
-
-            {/* 🔹 قائمة التصنيفات */}
-            <nav className='p-3 space-y-1'>
-              {categories.map((category, index) => (
-                <DrawerClose asChild key={category}>
                   <Link
-                    href={`/search?category=${category}`}
-                    className='group flex items-center justify-between p-3.5 rounded-xl
-                               bg-white/5 hover:bg-gradient-to-r hover:from-primary/20 hover:to-amber-500/20
-                               border border-transparent hover:border-primary/30
-                               transition-all duration-300
-                               hover:translate-x-1 rtl:hover:-translate-x-1'
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    href="/account"
+                    className="sidebar-item group"
                   >
-                    <div className='flex items-center gap-3'>
-                      <div className='w-2 h-2 rounded-full 
-                                      bg-gradient-to-r from-primary to-amber-500
-                                      opacity-0 group-hover:opacity-100
-                                      scale-0 group-hover:scale-100
-                                      transition-all duration-300' />
-                      <span className='text-gray-300 group-hover:text-white 
-                                       font-medium transition-colors duration-200'>
-                        {category}
-                      </span>
+                    <div className="sidebar-item-icon bg-blue-500/20">
+                      <UserCircle className="h-4 w-4 text-blue-400" />
                     </div>
-                    <ChevronIcon className='h-4 w-4 text-gray-500 
-                                            group-hover:text-primary
-                                            group-hover:translate-x-1 rtl:group-hover:-translate-x-1
-                                            transition-all duration-200' />
+                    <span>{t('Header.Your account')}</span>
+                    {isRTL ? (
+                      <ChevronLeft className="h-4 w-4 mr-auto text-gray-500 group-hover:text-blue-400 transition-colors" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 ml-auto text-gray-500 group-hover:text-blue-400 transition-colors" />
+                    )}
                   </Link>
                 </DrawerClose>
-              ))}
-            </nav>
-          </div>
 
-          {/* ═══════════════════════════════════════════════════════════════════
-              🔹 قسم المساعدة والإعدادات - Help & Settings
-              ═══════════════════════════════════════════════════════════════════ */}
-          <div className='border-t border-white/10 bg-gray-900/50 backdrop-blur-sm'>
-            {/* 🔹 عنوان القسم */}
-            <div className='p-4 border-b border-white/5'>
-              <div className='flex items-center gap-3'>
-                <div className='p-2 rounded-lg bg-blue-500/10 border border-blue-500/20'>
-                  <Settings className='w-4 h-4 text-blue-400' />
-                </div>
-                <h2 className='text-gray-400 font-semibold text-sm uppercase tracking-wider'>
-                  {t('Header.Help & Settings')}
-                </h2>
-              </div>
-            </div>
-
-            {/* 🔹 روابط المساعدة */}
-            <div className='p-3 space-y-1'>
-              {/* 🔹 حسابك */}
-              <DrawerClose asChild>
-                <Link 
-                  href='/account' 
-                  className='group flex items-center gap-3 p-3 rounded-xl
-                             hover:bg-white/5 transition-all duration-200'
-                >
-                  <div className='p-2 rounded-lg bg-blue-500/10 
-                                  group-hover:bg-blue-500/20 transition-colors duration-200'>
-                    <User className='w-4 h-4 text-blue-400' />
-                  </div>
-                  <span className='text-gray-300 group-hover:text-white 
-                                   transition-colors duration-200'>
-                    {t('Header.Your account')}
-                  </span>
-                </Link>
-              </DrawerClose>
-
-              {/* 🔹 خدمة العملاء */}
-              <DrawerClose asChild>
-                <Link 
-                  href='/page/customer-service' 
-                  className='group flex items-center gap-3 p-3 rounded-xl
-                             hover:bg-white/5 transition-all duration-200'
-                >
-                  <div className='p-2 rounded-lg bg-green-500/10 
-                                  group-hover:bg-green-500/20 transition-colors duration-200'>
-                    <Headphones className='w-4 h-4 text-green-400' />
-                  </div>
-                  <span className='text-gray-300 group-hover:text-white 
-                                   transition-colors duration-200'>
-                    {t('Header.Customer Service')}
-                  </span>
-                </Link>
-              </DrawerClose>
-
-              {/* 🔹 المساعدة */}
-              <DrawerClose asChild>
-                <Link 
-                  href='/page/help' 
-                  className='group flex items-center gap-3 p-3 rounded-xl
-                             hover:bg-white/5 transition-all duration-200'
-                >
-                  <div className='p-2 rounded-lg bg-purple-500/10 
-                                  group-hover:bg-purple-500/20 transition-colors duration-200'>
-                    <HelpCircle className='w-4 h-4 text-purple-400' />
-                  </div>
-                  <span className='text-gray-300 group-hover:text-white 
-                                   transition-colors duration-200'>
-                    {t('Header.Help')}
-                  </span>
-                </Link>
-              </DrawerClose>
-
-              {/* 🔹 تسجيل الدخول/الخروج */}
-              {session ? (
-                <form action={SignOut} className='w-full'>
-                  <Button
-                    className='w-full justify-start gap-3 p-3 h-auto
-                               bg-transparent hover:bg-red-500/10
-                               text-gray-300 hover:text-red-400
-                               rounded-xl transition-all duration-200
-                               group'
-                    variant='ghost'
-                  >
-                    <div className='p-2 rounded-lg bg-red-500/10 
-                                    group-hover:bg-red-500/20 transition-colors duration-200'>
-                      <LogOut className='w-4 h-4 text-red-400' />
-                    </div>
-                    <span>{t('Header.Sign out')}</span>
-                  </Button>
-                </form>
-              ) : (
                 <DrawerClose asChild>
-                  <Link 
-                    href='/sign-in' 
-                    className='group flex items-center gap-3 p-3 rounded-xl
-                               bg-gradient-to-r from-primary/10 to-amber-500/10
-                               hover:from-primary/20 hover:to-amber-500/20
-                               border border-primary/20
-                               transition-all duration-200'
+                  <Link
+                    href="/page/customer-service"
+                    className="sidebar-item group"
                   >
-                    <div className='p-2 rounded-lg bg-primary/20'>
-                      <LogIn className='w-4 h-4 text-primary' />
+                    <div className="sidebar-item-icon bg-green-500/20">
+                      <HelpCircle className="h-4 w-4 text-green-400" />
                     </div>
-                    <span className='text-primary group-hover:text-white 
-                                     font-medium transition-colors duration-200'>
-                      {t('Header.Sign in')}
-                    </span>
+                    <span>{t('Header.Customer Service')}</span>
+                    {isRTL ? (
+                      <ChevronLeft className="h-4 w-4 mr-auto text-gray-500 group-hover:text-green-400 transition-colors" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 ml-auto text-gray-500 group-hover:text-green-400 transition-colors" />
+                    )}
                   </Link>
                 </DrawerClose>
-              )}
+              </nav>
             </div>
-          </div>
+          </ScrollArea>
 
-          {/* ═══════════════════════════════════════════════════════════════════
-              🔹 الفوتر
-              ═══════════════════════════════════════════════════════════════════ */}
-          <div className='p-4 border-t border-white/5 bg-black/30'>
-            <div className='flex items-center justify-center gap-2 text-xs text-gray-600'>
-              <ShoppingBag className='w-3 h-3' />
-              <span>© 2024 - جميع الحقوق محفوظة</span>
-            </div>
+          {/* ═══════════════════ Footer ═══════════════════ */}
+          <div className="p-4 border-t border-gray-800 bg-gray-900/50">
+            {session ? (
+              <form action={SignOut} className="w-full">
+                <Button
+                  variant="ghost"
+                  className="
+                    w-full justify-start gap-3
+                    text-red-400 hover:text-red-300
+                    hover:bg-red-500/10
+                    rounded-lg h-12
+                  "
+                >
+                  <div className="w-9 h-9 rounded-lg bg-red-500/20 flex items-center justify-center">
+                    <LogOut className="h-4 w-4" />
+                  </div>
+                  {t('Header.Sign out')}
+                </Button>
+              </form>
+            ) : (
+              <DrawerClose asChild>
+                <Link href="/sign-in">
+                  <Button
+                    variant="default"
+                    className="
+                      w-full justify-center gap-2
+                      bg-gradient-to-r from-primary to-amber-500
+                      hover:from-primary/90 hover:to-amber-500/90
+                      text-primary-foreground
+                      rounded-lg h-12 font-semibold
+                      shadow-lg shadow-primary/30
+                    "
+                  >
+                    <LogIn className="h-4 w-4" />
+                    {t('Header.Sign in')}
+                  </Button>
+                </Link>
+              </DrawerClose>
+            )}
           </div>
         </div>
       </DrawerContent>

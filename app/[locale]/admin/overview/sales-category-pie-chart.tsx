@@ -319,7 +319,7 @@ export default function SalesCategoryPieChart({ data }: SalesCategoryPieChartPro
             
             <Pie
               activeIndex={activeIndex}
-              activeShape={renderActiveShape}
+              activeShape={renderActiveShape as any}
               data={chartData}
               cx="50%"
               cy="50%"

@@ -1,7 +1,14 @@
-// components/shared/header/theme-switcher.tsx
 'use client'
 
-import { ChevronDownIcon, Moon, Sun, Palette, Sparkles, Monitor } from 'lucide-react'
+import {
+  ChevronDown,
+  Moon,
+  Sun,
+  Monitor,
+  Palette,
+  Check,
+  Sparkles,
+} from 'lucide-react'
 import { useTheme } from 'next-themes'
 import * as React from 'react'
 import {
@@ -19,298 +26,345 @@ import useIsMounted from '@/hooks/use-is-mounted'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
+// Theme configurations
+const themes = [
+  {
+    value: 'light',
+    label: 'Light',
+    icon: Sun,
+    description: 'Light mode for day time',
+    gradient: 'from-amber-400 to-orange-500',
+    bgPreview: 'bg-white',
+    textPreview: 'text-gray-900',
+  },
+  {
+    value: 'dark',
+    label: 'Dark',
+    icon: Moon,
+    description: 'Dark mode for night time',
+    gradient: 'from-indigo-500 to-purple-600',
+    bgPreview: 'bg-gray-900',
+    textPreview: 'text-white',
+  },
+  {
+    value: 'system',
+    label: 'System',
+    icon: Monitor,
+    description: 'Follow system preferences',
+    gradient: 'from-gray-400 to-gray-600',
+    bgPreview: 'bg-gradient-to-r from-white to-gray-900',
+    textPreview: 'text-gray-600',
+  },
+]
+
 export default function ThemeSwitcher() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const { availableColors, color, setColor } = useColorStore(theme)
   const t = useTranslations('Header')
   const isMounted = useIsMounted()
+  const [isOpen, setIsOpen] = React.useState(false)
 
-  const changeTheme = (value: string) => {
-    setTheme(value)
-  }
+  const currentTheme = themes.find((t) => t.value === theme) || themes[0]
+  const CurrentIcon = currentTheme.icon
 
-  // 🔹 تحديد لون الخلفية للـ Trigger
-  const getThemeStyles = () => {
-    if (!isMounted) return 'bg-white/10'
-    if (theme === 'dark') {
-      return 'bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-indigo-500/30'
-    }
-    return 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-500/30'
+  if (!isMounted) {
+    return (
+      <div className="w-[100px] h-[41px] rounded-xl bg-gray-800/50 animate-pulse" />
+    )
   }
 
   return (
-    <DropdownMenu>
-      {/* 🔹 زر القائمة المنسدلة */}
-      <DropdownMenuTrigger 
-        className={cn(
-          `group relative flex items-center gap-2 px-3 py-2
-           rounded-xl border
-           transition-all duration-300
-           hover:scale-[1.02] active:scale-[0.98]
-           focus:outline-none focus:ring-2 focus:ring-purple-500/50`,
-          getThemeStyles()
-        )}
-      >
-        {/* 🔹 أيقونة الثيم مع تأثيرات */}
-        <div className='relative'>
-          {isMounted && theme === 'dark' ? (
-            <>
-              {/* 🌙 أيقونة القمر */}
-              <div className='absolute inset-0 rounded-lg bg-indigo-500/30 blur animate-pulse'></div>
-              <div className='relative p-1.5 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600
-                              shadow-lg shadow-indigo-500/30'>
-                <Moon className='h-4 w-4 text-white animate-[spin_3s_ease-in-out_infinite]' 
-                      style={{ animationDirection: 'reverse' }} />
-              </div>
-              {/* ✨ النجوم */}
-              <span className='absolute -top-1 -right-1 w-2 h-2 bg-yellow-300 rounded-full 
-                               animate-ping opacity-75'></span>
-              <span className='absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 bg-purple-300 rounded-full 
-                               animate-pulse'></span>
-            </>
-          ) : (
-            <>
-              {/* ☀️ أيقونة الشمس */}
-              <div className='absolute inset-0 rounded-lg bg-amber-500/30 blur animate-pulse'></div>
-              <div className='relative p-1.5 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500
-                              shadow-lg shadow-amber-500/30'>
-                <Sun className='h-4 w-4 text-white animate-[spin_10s_linear_infinite]' />
-              </div>
-              {/* 🌟 أشعة الشمس */}
-              <span className='absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full 
-                               animate-ping opacity-60'></span>
-            </>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            'relative flex items-center gap-2 px-3 py-2 rounded-xl',
+            'transition-all duration-300 ease-out',
+            'hover:bg-white/10',
+            'focus:outline-none focus:ring-2 focus:ring-primary/50',
+            'group'
           )}
-        </div>
+        >
+          {/* Icon Container */}
+          <div
+            className={cn(
+              'relative w-8 h-8 rounded-lg',
+              'bg-gradient-to-br',
+              currentTheme.gradient,
+              'flex items-center justify-center',
+              'transition-all duration-300',
+              'group-hover:scale-110 group-hover:shadow-lg',
+              resolvedTheme === 'dark'
+                ? 'shadow-indigo-500/30'
+                : 'shadow-amber-500/30'
+            )}
+          >
+            <CurrentIcon className="h-4 w-4 text-white" />
 
-        {/* 🔹 النص */}
-        <div className='hidden sm:flex flex-col items-start'>
-          <span className='text-[10px] text-gray-400 leading-tight'>
-            {t('Theme') || 'Theme'}
+            {/* Animated Ring */}
+            <div
+              className={cn(
+                'absolute inset-0 rounded-lg',
+                'bg-gradient-to-br',
+                currentTheme.gradient,
+                'opacity-0 group-hover:opacity-50',
+                'blur-md transition-opacity duration-300',
+                '-z-10'
+              )}
+            />
+          </div>
+
+          {/* Label - Hidden on mobile */}
+          <span className="hidden sm:block text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+            {t(currentTheme.label)}
           </span>
-          <span className='text-xs font-bold text-white leading-tight'>
-            {isMounted ? (theme === 'dark' ? t('Dark') : t('Light')) : '...'}
-          </span>
-        </div>
 
-        {/* 🔹 السهم */}
-        <ChevronDownIcon className='h-4 w-4 text-gray-400 
-                                     group-hover:text-white
-                                     group-data-[state=open]:rotate-180
-                                     transition-all duration-300' />
+          {/* Chevron */}
+          <ChevronDown
+            className={cn(
+              'h-4 w-4 text-gray-400',
+              'transition-all duration-300',
+              'group-hover:text-white',
+              isOpen && 'rotate-180'
+            )}
+          />
 
-        {/* 🔹 مؤشر اللون الحالي */}
-        <div 
-          className='absolute -bottom-1 left-1/2 -translate-x-1/2
-                     w-6 h-1 rounded-full shadow-lg'
-          style={{ 
-            backgroundColor: color?.name || '#8b5cf6',
-            boxShadow: `0 0 10px ${color?.name || '#8b5cf6'}`
-          }}
-        ></div>
+          {/* Hover Ring */}
+          <div
+            className={cn(
+              'absolute inset-0 rounded-xl',
+              'border border-transparent',
+              'group-hover:border-white/20',
+              'transition-all duration-300 pointer-events-none'
+            )}
+          />
+        </button>
       </DropdownMenuTrigger>
 
-      {/* 🔹 محتوى القائمة المنسدلة */}
-      <DropdownMenuContent 
-        className='w-64 p-2
-                   bg-gray-900/95 backdrop-blur-xl
-                   border border-white/10
-                   rounded-2xl shadow-2xl shadow-black/50
-                   animate-in fade-in-0 zoom-in-95 duration-200'
-        align='end'
+      <DropdownMenuContent
+        className={cn(
+          'w-80 p-0',
+          'bg-gray-900/95 backdrop-blur-xl',
+          'border border-gray-700',
+          'shadow-2xl shadow-black/50',
+          'animate-in fade-in-0 zoom-in-95'
+        )}
+        align="end"
         sideOffset={8}
       >
-        {/* ═══════════════════════════════════════════════════════ */}
-        {/* 🔹 قسم الثيم */}
-        {/* ═══════════════════════════════════════════════════════ */}
-        <DropdownMenuLabel className='flex items-center gap-2 px-2 py-1.5 text-gray-400'>
-          <Monitor className='w-4 h-4' />
-          <span className='text-xs font-semibold uppercase tracking-wider'>
-            {t('Theme') || 'Theme'}
-          </span>
-        </DropdownMenuLabel>
-
-        <DropdownMenuRadioGroup 
-          value={theme} 
-          onValueChange={changeTheme}
-          className='grid grid-cols-2 gap-2 p-1'
-        >
-          {/* 🔹 الوضع الداكن */}
-          <DropdownMenuRadioItem 
-            value='dark'
-            className={cn(
-              `flex flex-col items-center gap-2 p-3 rounded-xl cursor-pointer
-               border-2 transition-all duration-300
-               hover:scale-[1.02]`,
-              theme === 'dark' 
-                ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-indigo-500/50' 
-                : 'bg-white/5 border-transparent hover:border-white/20'
-            )}
-          >
-            <div className={cn(
-              'p-3 rounded-xl transition-all duration-300',
-              theme === 'dark'
-                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30'
-                : 'bg-white/10'
-            )}>
-              <Moon className={cn(
-                'h-6 w-6 transition-colors duration-200',
-                theme === 'dark' ? 'text-white' : 'text-gray-400'
-              )} />
+        {/* ═══════════════════ Theme Section ═══════════════════ */}
+        <div className="p-4">
+          <DropdownMenuLabel className="flex items-center gap-2 px-0 text-white mb-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-amber-500/20 flex items-center justify-center">
+              <Sun className="h-4 w-4 text-primary" />
             </div>
-            <span className={cn(
-              'text-sm font-medium transition-colors duration-200',
-              theme === 'dark' ? 'text-white' : 'text-gray-400'
-            )}>
-              {t('Dark')}
-            </span>
-            {theme === 'dark' && (
-              <span className='absolute top-1 right-1 w-2 h-2 rounded-full 
-                               bg-indigo-500 animate-pulse'></span>
-            )}
-          </DropdownMenuRadioItem>
-
-          {/* 🔹 الوضع الفاتح */}
-          <DropdownMenuRadioItem 
-            value='light'
-            className={cn(
-              `flex flex-col items-center gap-2 p-3 rounded-xl cursor-pointer
-               border-2 transition-all duration-300
-               hover:scale-[1.02]`,
-              theme === 'light' 
-                ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/50' 
-                : 'bg-white/5 border-transparent hover:border-white/20'
-            )}
-          >
-            <div className={cn(
-              'p-3 rounded-xl transition-all duration-300',
-              theme === 'light'
-                ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/30'
-                : 'bg-white/10'
-            )}>
-              <Sun className={cn(
-                'h-6 w-6 transition-colors duration-200',
-                theme === 'light' ? 'text-white' : 'text-gray-400'
-              )} />
+            <div>
+              <p className="text-sm font-semibold">{t('Theme')}</p>
+              <p className="text-xs font-normal text-gray-400">
+                {t('Choose your preferred theme')}
+              </p>
             </div>
-            <span className={cn(
-              'text-sm font-medium transition-colors duration-200',
-              theme === 'light' ? 'text-white' : 'text-gray-400'
-            )}>
-              {t('Light')}
-            </span>
-            {theme === 'light' && (
-              <span className='absolute top-1 right-1 w-2 h-2 rounded-full 
-                               bg-amber-500 animate-pulse'></span>
-            )}
-          </DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
+          </DropdownMenuLabel>
 
-        <DropdownMenuSeparator className='my-3 bg-white/10' />
+          {/* Theme Cards */}
+          <div className="grid grid-cols-3 gap-2">
+            {themes.map((themeOption) => {
+              const Icon = themeOption.icon
+              const isSelected = theme === themeOption.value
 
-        {/* ═══════════════════════════════════════════════════════ */}
-        {/* 🔹 قسم الألوان */}
-        {/* ═══════════════════════════════════════════════════════ */}
-        <DropdownMenuLabel className='flex items-center gap-2 px-2 py-1.5 text-gray-400'>
-          <Palette className='w-4 h-4' />
-          <span className='text-xs font-semibold uppercase tracking-wider'>
-            {t('Color')}
-          </span>
-        </DropdownMenuLabel>
-
-        <DropdownMenuRadioGroup
-          value={color.name}
-          onValueChange={(value) => setColor(value, true)}
-          className='grid grid-cols-4 gap-2 p-2'
-        >
-          {availableColors.map((c) => (
-            <DropdownMenuRadioItem
-              key={c.name}
-              value={c.name}
-              className={cn(
-                `group/color flex flex-col items-center gap-1.5 p-2 rounded-xl cursor-pointer
-                 border-2 transition-all duration-300
-                 hover:scale-105`,
-                color.name === c.name 
-                  ? 'border-white/50 bg-white/10' 
-                  : 'border-transparent hover:border-white/20'
-              )}
-            >
-              {/* 🔹 دائرة اللون */}
-              <div className='relative'>
-                {/* 🔹 تأثير التوهج */}
-                {color.name === c.name && (
-                  <div 
-                    className='absolute inset-0 rounded-full blur-md animate-pulse'
-                    style={{ backgroundColor: c.name, opacity: 0.5 }}
-                  ></div>
-                )}
-                <div
+              return (
+                <button
+                  key={themeOption.value}
+                  onClick={() => setTheme(themeOption.value)}
                   className={cn(
-                    `relative w-8 h-8 rounded-full
-                     border-2 transition-all duration-300
-                     group-hover/color:scale-110
-                     shadow-lg`,
-                    color.name === c.name ? 'border-white' : 'border-white/30'
+                    'relative flex flex-col items-center gap-2 p-3 rounded-xl',
+                    'border-2 transition-all duration-300',
+                    'hover:scale-105',
+                    isSelected
+                      ? 'border-primary bg-primary/10'
+                      : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800'
                   )}
-                  style={{ 
-                    backgroundColor: c.name,
-                    boxShadow: color.name === c.name 
-                      ? `0 0 20px ${c.name}` 
-                      : `0 4px 15px ${c.name}40`
-                  }}
                 >
-                  {/* 🔹 علامة الاختيار */}
-                  {color.name === c.name && (
-                    <div className='absolute inset-0 flex items-center justify-center'>
-                      <svg 
-                        className='w-4 h-4 text-white drop-shadow-lg' 
-                        fill='none' 
-                        viewBox='0 0 24 24' 
-                        stroke='currentColor'
-                      >
-                        <path 
-                          strokeLinecap='round' 
-                          strokeLinejoin='round' 
-                          strokeWidth={3} 
-                          d='M5 13l4 4L19 7' 
-                        />
-                      </svg>
+                  {/* Preview */}
+                  <div
+                    className={cn(
+                      'w-full h-10 rounded-lg mb-1 overflow-hidden',
+                      'border border-gray-600',
+                      themeOption.bgPreview
+                    )}
+                  >
+                    {/* Mini preview UI */}
+                    <div className="p-1.5">
+                      <div
+                        className={cn(
+                          'h-1.5 w-8 rounded-full mb-1',
+                          themeOption.value === 'light'
+                            ? 'bg-gray-300'
+                            : themeOption.value === 'dark'
+                              ? 'bg-gray-600'
+                              : 'bg-gradient-to-r from-gray-300 to-gray-600'
+                        )}
+                      />
+                      <div
+                        className={cn(
+                          'h-1 w-5 rounded-full',
+                          themeOption.value === 'light'
+                            ? 'bg-gray-200'
+                            : themeOption.value === 'dark'
+                              ? 'bg-gray-700'
+                              : 'bg-gradient-to-r from-gray-200 to-gray-700'
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Icon */}
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full',
+                      'bg-gradient-to-br',
+                      themeOption.gradient,
+                      'flex items-center justify-center',
+                      'shadow-lg',
+                      isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-gray-900'
+                    )}
+                  >
+                    <Icon className="h-4 w-4 text-white" />
+                  </div>
+
+                  {/* Label */}
+                  <span
+                    className={cn(
+                      'text-xs font-medium',
+                      isSelected ? 'text-primary' : 'text-gray-400'
+                    )}
+                  >
+                    {t(themeOption.label)}
+                  </span>
+
+                  {/* Selected Check */}
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="h-2.5 w-2.5 text-primary-foreground" />
                     </div>
                   )}
-                </div>
-              </div>
-              
-              {/* 🔹 اسم اللون */}
-              <span className={cn(
-                'text-[10px] font-medium transition-colors duration-200 text-center leading-tight',
-                color.name === c.name ? 'text-white' : 'text-gray-500'
-              )}>
-                {t(c.name)}
-              </span>
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
-        {/* 🔹 معاينة اللون الحالي */}
-        <div className='mt-3 p-3 rounded-xl bg-white/5 border border-white/10'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <Sparkles className='w-4 h-4 text-gray-400' />
-              <span className='text-xs text-gray-400'>اللون الحالي</span>
+        <DropdownMenuSeparator className="bg-gray-800" />
+
+        {/* ═══════════════════ Color Section ═══════════════════ */}
+        <div className="p-4">
+          <DropdownMenuLabel className="flex items-center gap-2 px-0 text-white mb-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+              <Palette className="h-4 w-4 text-pink-400" />
             </div>
-            <div className='flex items-center gap-2'>
-              <div 
-                className='w-5 h-5 rounded-full shadow-lg'
-                style={{ 
-                  backgroundColor: color.name,
-                  boxShadow: `0 0 10px ${color.name}`
-                }}
-              ></div>
-              <span className='text-xs font-medium text-white'>
+            <div>
+              <p className="text-sm font-semibold">{t('Accent Color')}</p>
+              <p className="text-xs font-normal text-gray-400">
+                {t('Personalize your experience')}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+
+          {/* Color Grid */}
+          <div className="grid grid-cols-5 gap-2">
+            {availableColors.map((c) => {
+              const isSelected = color.name === c.name
+
+              // Map color names to actual colors
+              const colorMap: Record<string, string> = {
+                Gold: '#F59E0B',
+                Green: '#10B981',
+                Blue: '#3B82F6',
+                Red: '#EF4444',
+                Pink: '#EC4899',
+                Purple: '#8B5CF6',
+                Orange: '#F97316',
+                Teal: '#14B8A6',
+                Indigo: '#6366F1',
+                Rose: '#F43F5E',
+              }
+
+              const bgColor = colorMap[c.name] || c.name
+
+              return (
+                <button
+                  key={c.name}
+                  onClick={() => setColor(c.name, true)}
+                  className={cn(
+                    'relative group flex flex-col items-center gap-1.5 p-2 rounded-xl',
+                    'transition-all duration-300',
+                    'hover:bg-gray-800',
+                    isSelected && 'bg-gray-800'
+                  )}
+                  title={t(c.name)}
+                >
+                  {/* Color Circle */}
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-full',
+                      'transition-all duration-300',
+                      'group-hover:scale-110 group-hover:shadow-lg',
+                      isSelected && 'ring-2 ring-white ring-offset-2 ring-offset-gray-900 scale-110'
+                    )}
+                    style={{
+                      backgroundColor: bgColor,
+                      boxShadow: isSelected ? `0 0 20px ${bgColor}50` : 'none',
+                    }}
+                  >
+                    {/* Selected Check */}
+                    {isSelected && (
+                      <div className="w-full h-full rounded-full flex items-center justify-center bg-black/20">
+                        <Check className="h-4 w-4 text-white drop-shadow-lg" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Color Name */}
+                  <span
+                    className={cn(
+                      'text-[10px] font-medium truncate w-full text-center',
+                      isSelected ? 'text-white' : 'text-gray-500'
+                    )}
+                  >
+                    {t(c.name)}
+                  </span>
+
+                  {/* Glow Effect */}
+                  <div
+                    className={cn(
+                      'absolute inset-0 rounded-xl opacity-0',
+                      'group-hover:opacity-100 transition-opacity duration-300',
+                      '-z-10 blur-xl'
+                    )}
+                    style={{ backgroundColor: `${bgColor}30` }}
+                  />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ═══════════════════ Footer ═══════════════════ */}
+        <div className="p-3 bg-gray-800/50 border-t border-gray-800">
+          <div className="flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-primary" />
+              <span>{t('Current')}: </span>
+              <span
+                className="font-medium"
+                style={{ color: color.name }}
+              >
                 {t(color.name)}
               </span>
             </div>
+            <span>
+              {resolvedTheme === 'dark' ? '🌙' : '☀️'} {t(currentTheme.label)}
+            </span>
           </div>
         </div>
       </DropdownMenuContent>

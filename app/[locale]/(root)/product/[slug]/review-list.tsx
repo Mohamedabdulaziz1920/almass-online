@@ -491,7 +491,7 @@ export default function ReviewList({
                         
                         <div className='flex items-center gap-2 text-xs text-muted-foreground mt-0.5'>
                           <Calendar className='w-3 h-3' />
-                          {getTimeAgo(review.createdAt)}
+                          {getTimeAgo(new Date(review.createdAt))}
                         </div>
                       </div>
                     </div>
