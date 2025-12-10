@@ -301,3 +301,11 @@ export const SettingInputSchema = z.object({
     .min(1, 'At least one delivery date is required'),
   defaultDeliveryDate: z.string().min(1, 'Delivery date is required'),
 })
+// أضف هذا في lib/validator.ts
+export const CategoryInputSchema = z.object({
+  name: z.string().min(3, 'Name must be at least 3 characters'),
+  slug: z.string().min(3, 'Slug must be at least 3 characters'),
+  image: z.string().min(1, 'Image is required'),
+  isFeatured: z.boolean(),
+  banner: z.string().optional(),
+})
