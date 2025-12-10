@@ -11,7 +11,6 @@ import {
   Package, 
   Calendar,
   ExternalLink,
-  ImageIcon,
   Award,
   Medal,
   Trophy

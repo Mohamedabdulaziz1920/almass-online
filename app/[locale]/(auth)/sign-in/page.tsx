@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { getSetting } from '@/lib/actions/setting.actions'
 import { 
   ShieldCheck, 
-  Sparkles, 
   ArrowRight,
   Lock,
   UserPlus

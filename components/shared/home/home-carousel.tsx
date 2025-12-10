@@ -25,7 +25,7 @@ export function HomeCarousel({ items }: { items: ICarousel[] }) {
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
-  const [isHovered, setIsHovered] = useState(false)
+  const [setIsHovered] = useState(false)
 
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: false })
