@@ -84,3 +84,21 @@ export type SiteLanguage = z.infer<typeof SiteLanguageSchema>
 export type SiteCurrency = z.infer<typeof SiteCurrencySchema>
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>
 export type DeliveryDate = z.infer<typeof DeliveryDateSchema>
+export type IProduct = {
+  _id: string
+  name: string
+  slug: string
+  category: string
+  images: string[]
+  image: string // قد تكون موجودة كصورة رئيسية
+  price: number
+  brand: string
+  rating: number
+  numReviews: number
+  countInStock: number
+  description: string
+  isFeatured: boolean
+  banner?: string
+  createdAt: Date
+  updatedAt: Date
+}
