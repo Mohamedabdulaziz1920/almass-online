@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Image from 'next/image'
+import { Switch } from '@/components/ui/switch' // تأكد من تثبيت المكون: npx shadcn-ui@latest add switch
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -27,6 +28,7 @@ import {
   AlertCircle,
   Info,
   FolderOpen,
+  Star, // تم إضافة Star هنا لإصلاح خطأ عدم التعريف
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -57,10 +59,13 @@ export enum CategoryFormType {
   Update = 'Update',
 }
 
+// تم تصحيح القيم الافتراضية لإصلاح خطأ Property is missing
 const categoryDefaultValues: Inputs = {
   name: '',
   slug: '',
   image: '',
+  isFeatured: false,
+  banner: '',
 }
 
 type Props = {
@@ -149,6 +154,7 @@ const CategoryForm = ({ type, initialData, categoryId }: Props) => {
   })
 
   const image = form.watch('image')
+  const banner = form.watch('banner') // Watch banner as well
   const isSubmitting = form.formState.isSubmitting || isPending
 
   // حذف الصورة
@@ -173,12 +179,14 @@ const CategoryForm = ({ type, initialData, categoryId }: Props) => {
         }
       }
 
-      if (type === CategoryFormType.Update) {
-        if (!categoryId) {
-          router.push(`/admin/categories`)
-          return
-        }
-        const res = await updateCategory(categoryId, values)
+      if (type === 'Update') {
+  if (!categoryId) return // حماية إضافية للتأكد من وجود المعرف
+
+  // 1. قمنا بتعريف المتغير res
+  // 2. استخدمنا categoryId بدلاً من category._id
+  // 3. دمجنا القيم في كائن واحد كما طلبنا سابقاً
+  const res = await updateCategory({ ...values, _id: categoryId })
+
         if (!res.success) {
           toast({
             variant: 'destructive',
@@ -342,6 +350,114 @@ const CategoryForm = ({ type, initialData, categoryId }: Props) => {
                 </div>
               </div>
 
+              {/* حقل مميز */}
+              <FormField
+                control={form.control}
+                name="isFeatured"
+                render={({ field }) => (
+                  <FormItem>
+                    <div
+                      className={cn(
+                        'flex items-center justify-between p-4 rounded-xl',
+                        'border transition-colors cursor-pointer',
+                        field.value
+                          ? 'bg-yellow-500/10 border-yellow-500/30'
+                          : 'bg-gray-800/50 border-gray-700/50 hover:border-gray-600'
+                      )}
+                      onClick={() => field.onChange(!field.value)}
+                    >
+                      <div className="flex items-center gap-3">
+                        {field.value ? (
+                          <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                        ) : (
+                          <Star className="h-5 w-5 text-gray-400" />
+                        )}
+                        <div>
+                          <p className={cn(
+                            'font-medium',
+                            field.value ? 'text-yellow-400' : 'text-gray-300'
+                          )}>
+                            {field.value ? 'فئة مميزة' : 'فئة عادية'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {field.value
+                              ? 'ستظهر الفئة في القسم المميز'
+                              : 'فئة عادية في القائمة'}
+                          </p>
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {/* حقل البانر */}
+              <FormField
+                control={form.control}
+                name="banner"
+                render={() => (
+                  <FormItem>
+                    <FormLabel className="text-gray-300 flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-pink-400" />
+                      بانر الفئة (اختياري)
+                    </FormLabel>
+                    <Card className="bg-gray-900/50 border-gray-700/50 border-dashed">
+                      <CardContent className="p-4">
+                        {banner && (
+                          <div className="relative group mb-4">
+                            <div className="relative h-24 rounded-xl overflow-hidden bg-gray-800 border border-gray-700/50">
+                              <Image
+                                src={banner || ''} // 👈 تم الإصلاح: تجنب undefined
+                                alt="بانر الفئة"
+                                fill
+                                className="object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => form.setValue('banner', '')}
+                                className={cn(
+                                  'absolute top-2 right-2',
+                                  'flex h-7 w-7 items-center justify-center rounded-lg',
+                                  'bg-red-500/80 text-white',
+                                  'opacity-0 group-hover:opacity-100',
+                                  'transition-opacity hover:bg-red-600'
+                                )}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <FormControl>
+                          <UploadButton
+                            endpoint="imageUploader"
+                            onClientUploadComplete={(res: { url: string }[]) => {
+                              if (res && res[0]?.url) {
+                                form.setValue('banner', res[0].url)
+                                toast({ description: 'تم رفع البانر بنجاح' })
+                              }
+                            }}
+                            onUploadError={(error: Error) => {
+                              toast({
+                                variant: 'destructive',
+                                description: `خطأ: ${error.message}`,
+                              })
+                            }}
+                          />
+                        </FormControl>
+                      </CardContent>
+                    </Card>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               {/* نصائح */}
               <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
                 <div className="flex items-start gap-3">
@@ -383,7 +499,7 @@ const CategoryForm = ({ type, initialData, categoryId }: Props) => {
                             <div className="relative group mb-4">
                               <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800 border border-gray-700/50">
                                 <Image
-                                  src={image}
+                                  src={image || ''} // 👈 تم الإصلاح
                                   alt="صورة الفئة"
                                   fill
                                   className="object-cover"

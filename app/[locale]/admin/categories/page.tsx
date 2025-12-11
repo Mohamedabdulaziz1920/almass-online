@@ -6,15 +6,15 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { getCategories } from '@/lib/actions/category.actions'
-import { Button } from '@/components/ui/button'
+// تم حذف Button لأنه غير مستخدم
 import {
   Layers,
   Plus,
   Search,
-  Filter,
-  RefreshCcw,
+  // تم حذف Filter
+  // تم حذف RefreshCcw
   Edit3,
-  Trash2,
+  // تم حذف Trash2
   Eye,
   FolderOpen,
   Package,
@@ -22,14 +22,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   Grid3X3,
-  List,
+  // تم حذف List
   ChevronLeft,
   Home,
-  MoreVertical,
-  ImageIcon,
+  // تم حذف MoreVertical
+  // تم حذف ImageIcon
   ExternalLink,
   Sparkles,
-  BarChart3,
+  // تم حذف BarChart3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -347,7 +347,8 @@ const CategoriesListPage = async () => {
         </div>
         <h1 className="text-2xl font-bold text-red-400 mb-2">{t('Error')}</h1>
         <p className="text-gray-400 text-center max-w-md">
-          {response.error || 'حدث خطأ أثناء تحميل الفئات'}
+          {/* تم التصحيح هنا: استخدام message بدلاً من error */}
+          {response.message || 'حدث خطأ أثناء تحميل الفئات'}
         </p>
         <Link
           href="/admin/overview"

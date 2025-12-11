@@ -32,6 +32,19 @@ export const metadata: Metadata = {
 // ═══════════════════════════════════════════════════════════════
 // 📋 تعريف الأنواع
 // ═══════════════════════════════════════════════════════════════
+
+interface CategoryDetails {
+  _id: string;
+  name: string;
+  slug: string;
+  image: string;
+  isFeatured: boolean;
+  banner?: string;
+  productCount?: number;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
 type Props = {
   params: Promise<{ id: string }>
 }
@@ -132,7 +145,7 @@ export default async function EditCategoryPage({ params }: Props) {
   }
 
   // جلب بيانات الفئة
-  const category = await getCategoryById(id)
+  const category = await getCategoryById(id) as unknown as CategoryDetails
 
   if (!category) {
     notFound()
@@ -278,13 +291,15 @@ export default async function EditCategoryPage({ params }: Props) {
                   {category.createdAt && (
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      الإنشاء: {formatDateTime(category.createdAt).dateOnly}
+                      {/* 🛠️ التصحيح هنا: استخدام new Date */}
+                      الإنشاء: {formatDateTime(new Date(category.createdAt)).dateOnly}
                     </span>
                   )}
                   {category.updatedAt && (
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      التحديث: {formatDateTime(category.updatedAt).dateOnly}
+                      {/* 🛠️ التصحيح هنا: استخدام new Date */}
+                      التحديث: {formatDateTime(new Date(category.updatedAt)).dateOnly}
                     </span>
                   )}
                 </div>

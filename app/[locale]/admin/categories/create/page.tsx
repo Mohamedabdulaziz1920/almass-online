@@ -1,75 +1,90 @@
-// app/[locale]/admin/categories/edit/[id]/not-found.tsx
+// app/[locale]/admin/categories/create/page.tsx
+import { Metadata } from 'next'
 import Link from 'next/link'
-import { 
-  Layers, 
-  Home, 
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+// 👇 1. قم بتعديل الاستيراد هنا لإحضار CategoryFormType
+import CategoryForm, { CategoryFormType } from '../category-form'
+import {
+  Package,
+  ChevronLeft,
+  Home,
   Plus,
-  ArrowRight,
+  Sparkles,
 } from 'lucide-react'
 
-export default function CategoryNotFound() {
+export const metadata: Metadata = {
+  title: 'إضافة قسم جديد | لوحة التحكم',
+  description: 'إضافة قسم جديد إلى المتجر',
+}
+
+function Breadcrumb() {
+  const items = [
+    { label: 'لوحة التحكم', href: '/admin/overview', icon: Home },
+    { label: 'الأقسام', href: '/admin/categories', icon: Package },
+    { label: 'إضافة قسم', href: '/admin/categories/create', icon: Plus, active: true },
+  ]
+
   return (
-    <div className="min-h-[60vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* البطاقة الرئيسية */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 p-8 text-center backdrop-blur-sm">
-          {/* الخلفية المتوهجة */}
-          <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-red-500/10 blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
+    <nav className="flex items-center gap-1 text-sm flex-wrap">
+      {items.map((item, index) => {
+        const Icon = item.icon
+        const isLast = index === items.length - 1
 
-          {/* الأيقونة */}
-          <div className="relative mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-red-500/20 to-orange-500/20 blur-xl animate-pulse" />
-            <div className="relative flex h-20 w-20 mx-auto items-center justify-center rounded-2xl bg-gray-800/80 border border-gray-700/50">
-              <Layers className="h-10 w-10 text-gray-500" />
-              <div className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
-                !
-              </div>
-            </div>
-          </div>
-
-          {/* العنوان */}
-          <h1 className="relative text-2xl font-bold text-white mb-3">
-            الفئة غير موجودة
-          </h1>
-
-          {/* الوصف */}
-          <p className="relative text-gray-400 mb-6 leading-relaxed">
-            لم نتمكن من العثور على الفئة المطلوبة. 
-            ربما تم حذفها أو أن الرابط غير صحيح.
-          </p>
-
-          {/* الأزرار */}
-          <div className="relative flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/admin/categories"
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold hover:from-violet-600 hover:to-purple-700 transition-all duration-300 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40"
-            >
-              <Layers className="h-5 w-5" />
-              <span>قائمة الفئات</span>
-            </Link>
+        return (
+          <div key={item.href} className="flex items-center gap-1">
+            {index > 0 && (
+              <ChevronLeft className="h-4 w-4 text-gray-600" />
+            )}
             
-            <Link
-              href="/admin/categories/create"
-              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gray-800 text-gray-300 font-medium hover:bg-gray-700 hover:text-white border border-gray-700 hover:border-gray-600 transition-all duration-300"
-            >
-              <Plus className="h-5 w-5" />
-              <span>إنشاء فئة</span>
-            </Link>
+            {isLast ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/10 text-violet-400 font-medium border border-violet-500/20">
+                <Icon className="h-3.5 w-3.5" />
+                {item.label}
+              </span>
+            ) : (
+              <Link
+                href={item.href}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{item.label}</span>
+              </Link>
+            )}
           </div>
-        </div>
+        )
+      })}
+    </nav>
+  )
+}
 
-        {/* رابط الرئيسية */}
-        <div className="text-center mt-6">
-          <Link
-            href="/admin/overview"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            <Home className="h-4 w-4" />
-            العودة للوحة التحكم
-          </Link>
+const CreateCategoryPage = async () => {
+  const session = await auth()
+
+  if (!session?.user) {
+    redirect('/sign-in?callbackUrl=/admin/categories/create')
+  }
+
+  if (session.user.role !== 'Admin') {
+    redirect('/admin/overview')
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <Breadcrumb />
+        
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20">
+            <Sparkles className="h-4 w-4 text-violet-400" />
+            <span className="text-sm font-medium text-violet-400">قسم جديد</span>
+          </span>
         </div>
       </div>
+
+      {/* 👇 2. استخدم Enum هنا بدلاً من النص */}
+      <CategoryForm type={CategoryFormType.Create} />
     </div>
   )
 }
+export default CreateCategoryPage
