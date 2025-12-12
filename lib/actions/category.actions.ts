@@ -11,11 +11,12 @@ import mongoose from 'mongoose'
 export type CreateCategoryInput = z.infer<typeof CategoryInputSchema>
 
 // واجهات بيانات
-// واجهات بيانات
 interface CategoryParams {
   name: string
   slug: string
   image: string
+  isFeatured: boolean
+  banner?: string
 }
 
 interface SimpleCategory {
@@ -23,6 +24,8 @@ interface SimpleCategory {
   name: string
   slug: string
   image: string
+  isFeatured: boolean
+  banner?: string
 }
 
 // ====== إنشاء تصنيف جديد ======
@@ -38,11 +41,18 @@ export async function createCategory(data: CategoryParams) {
       }
     }
 
-    const newCategory = await Category.create(data)
+    const newCategory = await Category.create({
+      name: data.name,
+      slug: data.slug,
+      image: data.image,
+      isFeatured: data.isFeatured,
+      banner: data.banner,
+    })
+
     return {
       success: true,
       message: 'تم إنشاء التصنيف بنجاح.',
-      data: JSON.parse(JSON.stringify(newCategory)),
+      data: JSON.parse(JSON.stringify(newCategory)) as CategoryType,
     }
   } catch (error) {
     return {
@@ -51,6 +61,8 @@ export async function createCategory(data: CategoryParams) {
     }
   }
 }
+
+// ====== جلب تصنيف مع المنتجات ======
 export const getCategoryWithProducts = async (
   slug: string
 ): Promise<{
@@ -61,30 +73,34 @@ export const getCategoryWithProducts = async (
     await connectToDatabase()
 
     // جلب بيانات التصنيف
-    const category = await Category.findOne({ slug }).lean<CategoryType>()
-    if (!category) return null
+    const categoryDoc = await Category.findOne({ slug }).lean()
+    if (!categoryDoc) return null
 
     // جلب المنتجات التي تملك نفس slug في حقل category (كنص)
-    const products = await Product.find({ category: slug }) // هنا نبحث بالنص وليس ObjectId
+    const products = await Product.find({ category: slug })
       .select(
-        '_id name slug category images brand price listPrice countInStock tags avgRating numReviews createdAt updatedAt'
+        '_id name slug category images brand price listPrice countInStock tags avgRating numReviews createdAt updatedAt description'
       )
       .lean()
       .sort({ createdAt: -1 })
 
+    const category: CategoryType = {
+      _id: String(categoryDoc._id),
+      name: categoryDoc.name,
+      slug: categoryDoc.slug,
+      image: categoryDoc.image,
+      isFeatured: categoryDoc.isFeatured ?? false,
+      banner: categoryDoc.banner,
+    }
+
     return {
-      category: {
-        _id: String(category._id),
-        name: category.name,
-        slug: category.slug,
-        image: category.image,
-      },
+      category,
       products: products.map(
         (product): ProductType => ({
           _id: String(product._id),
           name: product.name,
           slug: product.slug,
-          category: product.category, // هنا ما زال نصًا
+          category: product.category, // slug كنص
           images: product.images || [],
           brand: product.brand || 'غير محدد',
           description: product.description || '',
@@ -106,6 +122,7 @@ export const getCategoryWithProducts = async (
     )
   }
 }
+
 // ====== تحديث تصنيف موجود ======
 export async function updateCategory(data: { _id: string } & CategoryParams) {
   try {
@@ -132,12 +149,14 @@ export async function updateCategory(data: { _id: string } & CategoryParams) {
     category.name = data.name
     category.slug = data.slug
     category.image = data.image
+    category.isFeatured = data.isFeatured
+    category.banner = data.banner
 
     await category.save()
     return {
       success: true,
       message: 'تم تحديث التصنيف بنجاح.',
-      data: JSON.parse(JSON.stringify(category)),
+      data: JSON.parse(JSON.stringify(category)) as CategoryType,
     }
   } catch (error) {
     return {
@@ -147,9 +166,9 @@ export async function updateCategory(data: { _id: string } & CategoryParams) {
   }
 }
 
+// ====== حذف تصنيف ======
 export async function deleteCategory(id: string) {
   try {
-    // التحقق الأساسي
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return {
         success: false,
@@ -159,7 +178,6 @@ export async function deleteCategory(id: string) {
 
     await connectToDatabase()
 
-    // التحقق من وجود التصنيف
     const category = await Category.findById(id)
     if (!category) {
       return {
@@ -168,7 +186,6 @@ export async function deleteCategory(id: string) {
       }
     }
 
-    // التحقق من التبعيات
     const dependentProducts = await Product.countDocuments({ categoryId: id })
     if (dependentProducts > 0) {
       return {
@@ -177,7 +194,6 @@ export async function deleteCategory(id: string) {
       }
     }
 
-    // تنفيذ الحذف
     await Category.findByIdAndDelete(id)
 
     return {
@@ -194,11 +210,11 @@ export async function deleteCategory(id: string) {
 }
 
 // ====== جلب تصنيف حسب الـ ID ======
-export async function getCategoryById(id: string) {
+export async function getCategoryById(id: string): Promise<CategoryType> {
   try {
     await connectToDatabase()
 
-    const category = await Category.findById(id).lean<CategoryType>()
+    const category = await Category.findById(id).lean()
     if (!category) {
       throw new Error('Category not found.')
     }
@@ -208,6 +224,8 @@ export async function getCategoryById(id: string) {
       name: category.name,
       slug: category.slug,
       image: category.image,
+      isFeatured: category.isFeatured ?? false,
+      banner: category.banner,
     }
   } catch (error) {
     throw new Error(`Failed to fetch category: ${(error as Error).message}`)
@@ -224,17 +242,21 @@ export const getCategories = async (): Promise<{
     await connectToDatabase()
 
     const categories = await Category.find()
-      .select('name slug image')
-      .lean<SimpleCategory[]>()
+      .select('name slug image isFeatured banner')
+      .lean()
+
+    const data: SimpleCategory[] = categories.map((cat: any) => ({
+      _id: String(cat._id),
+      name: cat.name,
+      slug: cat.slug,
+      image: cat.image,
+      isFeatured: cat.isFeatured ?? false,
+      banner: cat.banner,
+    }))
 
     return {
       success: true,
-      data: categories.map((cat) => ({
-        _id: String(cat._id),
-        name: cat.name,
-        slug: cat.slug,
-        image: cat.image,
-      })),
+      data,
     }
   } catch (error) {
     console.error(error)
@@ -250,13 +272,18 @@ export const getCategories = async (): Promise<{
 export const getAllCategories = async (): Promise<CategoryType[]> => {
   await connectToDatabase()
 
-  const categories = await Category.find().lean<CategoryType[]>()
-  return categories.map((cat) => ({
-    _id: String(cat._id),
-    name: cat.name,
-    slug: cat.slug,
-    image: cat.image,
-  }))
+  const categories = await Category.find().lean()
+
+  return categories.map(
+    (cat: any): CategoryType => ({
+      _id: String(cat._id),
+      name: cat.name,
+      slug: cat.slug,
+      image: cat.image,
+      isFeatured: cat.isFeatured ?? false,
+      banner: cat.banner,
+    })
+  )
 }
 
 // ====== جلب تصنيف عن طريق الـ Slug ======
@@ -265,8 +292,7 @@ export const getCategoryBySlug = async (
 ): Promise<CategoryType | null> => {
   await connectToDatabase()
 
-  const category = await Category.findOne({ slug }).lean<CategoryType>()
-
+  const category = await Category.findOne({ slug }).lean()
   if (!category) return null
 
   return {
@@ -274,5 +300,7 @@ export const getCategoryBySlug = async (
     name: category.name,
     slug: category.slug,
     image: category.image,
+    isFeatured: category.isFeatured ?? false,
+    banner: category.banner,
   }
 }
