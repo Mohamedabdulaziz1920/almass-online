@@ -15,6 +15,7 @@ import {
   UserNameSchema,
   UserSignInSchema,
   UserSignUpSchema,
+  CategoryInputSchema,
   WebPageInputSchema,
 } from '@/lib/validator'
 import { z } from 'zod'
