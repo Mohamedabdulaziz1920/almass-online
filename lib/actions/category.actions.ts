@@ -91,6 +91,8 @@ export const getCategoryWithProducts = async (
       image: categoryDoc.image,
       isFeatured: categoryDoc.isFeatured ?? false,
       banner: categoryDoc.banner,
+      createdAt: categoryDoc.createdAt,
+      updatedAt: categoryDoc.updatedAt,
     }
 
     return {
