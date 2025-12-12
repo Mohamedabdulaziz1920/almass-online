@@ -66,7 +66,31 @@ export const ProductUpdateSchema = ProductInputSchema.extend({
   _id: z.string(),
 })
 
-// Order Item
+// ═══════════════════════════════════════════════════════════════════════════
+// 🎨 حالات الطلب
+// ═══════════════════════════════════════════════════════════════════════════
+export const OrderStatusEnum = z.enum([
+  'pending',      // جاري الانتظار
+  'processing',   // قيد التحضير
+  'shipped',      // تم الشحن
+  'delivered',    // تم التوصيل
+  'completed',    // مكتمل
+  'cancelled',    // ملغي
+  'rejected',     // مرفوض
+])
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 سجل الحالة
+// ═══════════════════════════════════════════════════════════════════════════
+export const StatusHistorySchema = z.object({
+  status: OrderStatusEnum,
+  timestamp: z.date(),
+  note: z.string().optional(),
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📦 Order Item - عنصر الطلب
+// ═══════════════════════════════════════════════════════════════════════════
 export const OrderItemSchema = z.object({
   clientId: z.string().min(1, 'clientId is required'),
   product: z.string().min(1, 'Product is required'),
@@ -86,6 +110,10 @@ export const OrderItemSchema = z.object({
   size: z.string().optional(),
   color: z.string().optional(),
 })
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📍 Shipping Address - عنوان الشحن
+// ═══════════════════════════════════════════════════════════════════════════
 export const ShippingAddressSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
   street: z.string().min(1, 'Address is required'),
@@ -96,7 +124,9 @@ export const ShippingAddressSchema = z.object({
   country: z.string().min(1, 'Country is required'),
 })
 
-// Order
+// ═══════════════════════════════════════════════════════════════════════════
+// 📦 Order Input - مدخلات الطلب
+// ═══════════════════════════════════════════════════════════════════════════
 export const OrderInputSchema = z.object({
   user: z.union([
     MongoId,
@@ -128,13 +158,44 @@ export const OrderInputSchema = z.object({
       (value) => value > new Date(),
       'Expected delivery date must be in the future'
     ),
-  isDelivered: z.boolean().default(false),
-  deliveredAt: z.date().optional(),
+  
+  // ═══════════════════════════════════════════════════════════════════════
+  // 🆕 حقول الحالة الجديدة
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  // حالة الطلب
+  status: OrderStatusEnum.default('pending'),
+  statusHistory: z.array(StatusHistorySchema).default([]),
+  
+  // حقول الدفع
   isPaid: z.boolean().default(false),
   paidAt: z.date().optional(),
+  
+  // حقول التوصيل
+  isDelivered: z.boolean().default(false),
+  deliveredAt: z.date().optional(),
+  shippedAt: z.date().optional(),
+  
+  // حقول الإكمال
+  completedAt: z.date().optional(),
+  
+  // حقول الإلغاء
+  isCancelled: z.boolean().default(false),
+  cancelledAt: z.date().optional(),
+  cancellationReason: z.string().optional(),
+  
+  // حقول الرفض
+  isRejected: z.boolean().default(false),
+  rejectedAt: z.date().optional(),
+  rejectionReason: z.string().optional(),
+  
+  // ملاحظات
+  notes: z.string().optional(),
 })
-// Cart
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🛒 Cart - سلة التسوق
+// ═══════════════════════════════════════════════════════════════════════════
 export const CartSchema = z.object({
   items: z
     .array(OrderItemSchema)
@@ -147,6 +208,23 @@ export const CartSchema = z.object({
   shippingAddress: z.optional(ShippingAddressSchema),
   deliveryDateIndex: z.optional(z.number()),
   expectedDeliveryDate: z.optional(z.date()),
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔄 مخطط تحديث حالة الطلب
+// ═══════════════════════════════════════════════════════════════════════════
+export const UpdateOrderStatusSchema = z.object({
+  orderId: z.string().min(1, 'Order ID is required'),
+  status: OrderStatusEnum,
+  reason: z.string().optional(),
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔄 مخطط التحديث المتعدد للطلبات
+// ═══════════════════════════════════════════════════════════════════════════
+export const BulkUpdateOrderStatusSchema = z.object({
+  orderIds: z.array(z.string()).min(1, 'At least one order ID is required'),
+  status: OrderStatusEnum,
 })
 
 // USER

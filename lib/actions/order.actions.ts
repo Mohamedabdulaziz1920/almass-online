@@ -1,6 +1,6 @@
 'use server'
 
-import { Cart, IOrderList, OrderItem, ShippingAddress } from '@/types'
+import { Cart, IOrderList, OrderItem, ShippingAddress, OrderStatus } from '@/types'
 import { formatError, round2 } from '../utils'
 import { connectToDatabase } from '../db'
 import { auth } from '@/auth'
@@ -15,7 +15,9 @@ import User from '../db/models/user.model'
 import mongoose from 'mongoose'
 import { getSetting } from './setting.actions'
 
-// CREATE
+// ═══════════════════════════════════════════════════════════════════════════
+// 📦 CREATE - إنشاء طلب جديد
+// ═══════════════════════════════════════════════════════════════════════════
 export const createOrder = async (clientSideCart: Cart) => {
   try {
     await connectToDatabase()
@@ -35,6 +37,7 @@ export const createOrder = async (clientSideCart: Cart) => {
     return { success: false, message: formatError(error) }
   }
 }
+
 export const createOrderFromCart = async (
   clientSideCart: Cart,
   userId: string
@@ -62,6 +65,9 @@ export const createOrderFromCart = async (
   return await Order.create(order)
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 💳 تحديث حالة الدفع
+// ═══════════════════════════════════════════════════════════════════════════
 export async function updateOrderToPaid(orderId: string) {
   try {
     await connectToDatabase()
@@ -70,8 +76,21 @@ export async function updateOrderToPaid(orderId: string) {
     }>('user', 'name email')
     if (!order) throw new Error('Order not found')
     if (order.isPaid) throw new Error('Order is already paid')
+    
     order.isPaid = true
     order.paidAt = new Date()
+    
+    // تحديث الحالة إلى قيد التحضير إذا كانت في الانتظار
+    if (!order.status || order.status === 'pending') {
+      order.status = 'processing'
+      order.statusHistory = order.statusHistory || []
+      order.statusHistory.push({
+        status: 'processing',
+        timestamp: new Date(),
+        note: 'تم الدفع - بدء التحضير تلقائياً',
+      })
+    }
+    
     await order.save()
     if (!process.env.MONGODB_URI?.startsWith('mongodb://localhost'))
       await updateProductStock(order._id)
@@ -82,6 +101,7 @@ export async function updateOrderToPaid(orderId: string) {
     return { success: false, message: formatError(err) }
   }
 }
+
 const updateProductStock = async (orderId: string) => {
   const session = await mongoose.connection.startSession()
 
@@ -116,6 +136,10 @@ const updateProductStock = async (orderId: string) => {
     throw error
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🚚 تحديث حالة التوصيل
+// ═══════════════════════════════════════════════════════════════════════════
 export async function deliverOrder(orderId: string) {
   try {
     await connectToDatabase()
@@ -124,8 +148,19 @@ export async function deliverOrder(orderId: string) {
     }>('user', 'name email')
     if (!order) throw new Error('Order not found')
     if (!order.isPaid) throw new Error('Order is not paid')
+    
     order.isDelivered = true
     order.deliveredAt = new Date()
+    
+    // تحديث الحالة إلى تم التوصيل
+    order.status = 'delivered'
+    order.statusHistory = order.statusHistory || []
+    order.statusHistory.push({
+      status: 'delivered',
+      timestamp: new Date(),
+      note: 'تم توصيل الطلب',
+    })
+    
     await order.save()
     if (order.user.email) await sendAskReviewOrderItems({ order })
     revalidatePath(`/account/orders/${orderId}`)
@@ -135,7 +170,9 @@ export async function deliverOrder(orderId: string) {
   }
 }
 
-// DELETE
+// ═══════════════════════════════════════════════════════════════════════════
+// 🗑️ DELETE - حذف طلب
+// ═══════════════════════════════════════════════════════════════════════════
 export async function deleteOrder(id: string) {
   try {
     await connectToDatabase()
@@ -151,8 +188,9 @@ export async function deleteOrder(id: string) {
   }
 }
 
-// GET ALL ORDERS
-
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 GET - جلب جميع الطلبات
+// ═══════════════════════════════════════════════════════════════════════════
 export async function getAllOrders({
   limit,
   page,
@@ -167,7 +205,7 @@ export async function getAllOrders({
   await connectToDatabase()
   const skipAmount = (Number(page) - 1) * limit
   const orders = await Order.find()
-    .populate('user', 'name')
+    .populate('user', 'name email')
     .sort({ createdAt: 'desc' })
     .skip(skipAmount)
     .limit(limit)
@@ -177,6 +215,7 @@ export async function getAllOrders({
     totalPages: Math.ceil(ordersCount / limit),
   }
 }
+
 export async function getMyOrders({
   limit,
   page,
@@ -207,12 +246,16 @@ export async function getMyOrders({
     totalPages: Math.ceil(ordersCount / limit),
   }
 }
+
 export async function getOrderById(orderId: string): Promise<IOrder> {
   await connectToDatabase()
   const order = await Order.findById(orderId)
   return JSON.parse(JSON.stringify(order))
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 💰 PayPal - دوال الدفع
+// ═══════════════════════════════════════════════════════════════════════════
 export async function createPayPalOrder(orderId: string) {
   await connectToDatabase()
   try {
@@ -255,6 +298,7 @@ export async function approvePayPalOrder(
       captureData.status !== 'COMPLETED'
     )
       throw new Error('Error in paypal payment')
+    
     order.isPaid = true
     order.paidAt = new Date()
     order.paymentResult = {
@@ -264,6 +308,18 @@ export async function approvePayPalOrder(
       pricePaid:
         captureData.purchase_units[0]?.payments?.captures[0]?.amount?.value,
     }
+    
+    // تحديث الحالة
+    if (!order.status || order.status === 'pending') {
+      order.status = 'processing'
+      order.statusHistory = order.statusHistory || []
+      order.statusHistory.push({
+        status: 'processing',
+        timestamp: new Date(),
+        note: 'تم الدفع عبر PayPal - بدء التحضير',
+      })
+    }
+    
     await order.save()
     await sendPurchaseReceipt({ order })
     revalidatePath(`/account/orders/${orderId}`)
@@ -276,6 +332,9 @@ export async function approvePayPalOrder(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 🧮 حساب تاريخ التوصيل والسعر
+// ═══════════════════════════════════════════════════════════════════════════
 export const calcDeliveryDateAndPrice = async ({
   items,
   shippingAddress,
@@ -323,7 +382,9 @@ export const calcDeliveryDateAndPrice = async ({
   }
 }
 
-// GET ORDERS BY USER
+// ═══════════════════════════════════════════════════════════════════════════
+// 📊 إحصائيات الطلبات للوحة التحكم
+// ═══════════════════════════════════════════════════════════════════════════
 export async function getOrderSummary(date: DateRange) {
   await connectToDatabase()
 
@@ -470,10 +531,7 @@ async function getTopSalesProducts(date: DateRange) {
         },
       },
     },
-    // Step 1: Unwind orderItems array
     { $unwind: '$items' },
-
-    // Step 2: Group by productId to calculate total sales per product
     {
       $group: {
         _id: {
@@ -483,7 +541,7 @@ async function getTopSalesProducts(date: DateRange) {
         },
         totalSales: {
           $sum: { $multiply: ['$items.quantity', '$items.price'] },
-        }, // Assume quantity field in orderItems represents units sold
+        },
       },
     },
     {
@@ -492,8 +550,6 @@ async function getTopSalesProducts(date: DateRange) {
       },
     },
     { $limit: 6 },
-
-    // Step 3: Replace productInfo array with product name and format the output
     {
       $project: {
         _id: 0,
@@ -503,8 +559,6 @@ async function getTopSalesProducts(date: DateRange) {
         value: '$totalSales',
       },
     },
-
-    // Step 4: Sort by totalSales in descending order
     { $sort: { _id: 1 } },
   ])
 
@@ -521,20 +575,336 @@ async function getTopSalesCategories(date: DateRange, limit = 5) {
         },
       },
     },
-    // Step 1: Unwind orderItems array
     { $unwind: '$items' },
-    // Step 2: Group by productId to calculate total sales per product
     {
       $group: {
         _id: '$items.category',
-        totalSales: { $sum: '$items.quantity' }, // Assume quantity field in orderItems represents units sold
+        totalSales: { $sum: '$items.quantity' },
       },
     },
-    // Step 3: Sort by totalSales in descending order
     { $sort: { totalSales: -1 } },
-    // Step 4: Limit to top N products
     { $limit: limit },
   ])
 
   return result
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔄 تحديث حالة الطلب
+// ═══════════════════════════════════════════════════════════════════════════
+export async function updateOrderStatus(
+  orderId: string, 
+  status: OrderStatus,
+  rejectionReason?: string
+) {
+  try {
+    await connectToDatabase()
+    
+    const session = await auth()
+    if (!session || session.user.role !== 'Admin') {
+      throw new Error('غير مصرح لك بتنفيذ هذا الإجراء')
+    }
+
+    const validStatuses: OrderStatus[] = [
+      'pending',
+      'processing', 
+      'shipped',
+      'delivered',
+      'completed',
+      'cancelled',
+      'rejected'
+    ]
+
+    if (!validStatuses.includes(status)) {
+      return {
+        success: false,
+        message: 'حالة غير صالحة',
+      }
+    }
+
+    const order = await Order.findById(orderId).populate<{
+      user: { email: string; name: string }
+    }>('user', 'name email')
+
+    if (!order) {
+      return {
+        success: false,
+        message: 'الطلب غير موجود',
+      }
+    }
+
+    // حفظ الحالة السابقة للسجل
+    const previousStatus = order.status || 'pending'
+
+    // تحديث الحالة
+    order.status = status
+    order.statusHistory = order.statusHistory || []
+    order.statusHistory.push({
+      status,
+      timestamp: new Date(),
+      note: rejectionReason || undefined,
+    })
+
+    // تحديث الحقول المرتبطة بناءً على الحالة
+    switch (status) {
+      case 'processing':
+        // عند بدء التحضير، نعتبر أن الدفع تم (إذا لم يكن قد تم)
+        if (!order.isPaid) {
+          order.isPaid = true
+          order.paidAt = new Date()
+        }
+        break
+
+      case 'shipped':
+        // تأكد من أن الطلب مدفوع قبل الشحن
+        if (!order.isPaid) {
+          order.isPaid = true
+          order.paidAt = new Date()
+        }
+        order.shippedAt = new Date()
+        break
+
+      case 'delivered':
+        order.isDelivered = true
+        order.deliveredAt = new Date()
+        // إرسال بريد طلب المراجعة
+        if (order.user?.email) {
+          try {
+            await sendAskReviewOrderItems({ order })
+          } catch (emailError) {
+            console.error('Error sending review email:', emailError)
+          }
+        }
+        break
+
+      case 'completed':
+        order.isDelivered = true
+        order.deliveredAt = order.deliveredAt || new Date()
+        order.completedAt = new Date()
+        break
+
+      case 'cancelled':
+        order.isCancelled = true
+        order.cancelledAt = new Date()
+        order.cancellationReason = rejectionReason
+        // إعادة المخزون إذا تم الإلغاء
+        await restoreProductStock(order._id)
+        break
+
+      case 'rejected':
+        order.isRejected = true
+        order.rejectedAt = new Date()
+        order.rejectionReason = rejectionReason
+        // إعادة المخزون إذا تم الرفض
+        await restoreProductStock(order._id)
+        break
+
+      case 'pending':
+        // إعادة الطلب للانتظار (تراجع)
+        break
+    }
+
+    await order.save()
+
+    // إعادة تحميل الصفحات
+    revalidatePath('/admin/orders')
+    revalidatePath(`/admin/orders/${orderId}`)
+    revalidatePath(`/account/orders/${orderId}`)
+
+    return {
+      success: true,
+      message: getStatusChangeMessage(status),
+      data: {
+        previousStatus,
+        newStatus: status,
+      }
+    }
+  } catch (err) {
+    console.error('Error updating order status:', err)
+    return { success: false, message: formatError(err) }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔄 إعادة المخزون عند الإلغاء أو الرفض
+// ═══════════════════════════════════════════════════════════════════════════
+async function restoreProductStock(orderId: string) {
+  const session = await mongoose.connection.startSession()
+
+  try {
+    session.startTransaction()
+    const opts = { session }
+
+    const order = await Order.findById(orderId).session(session)
+    if (!order) throw new Error('Order not found')
+
+    // فقط إذا كان الطلب قد تم دفعه (أي تم خصم المخزون)
+    if (order.isPaid) {
+      for (const item of order.items) {
+        const product = await Product.findById(item.product).session(session)
+        if (product) {
+          product.countInStock += item.quantity
+          await Product.updateOne(
+            { _id: product._id },
+            { countInStock: product.countInStock },
+            opts
+          )
+        }
+      }
+    }
+
+    await session.commitTransaction()
+    session.endSession()
+    return true
+  } catch (error) {
+    await session.abortTransaction()
+    session.endSession()
+    console.error('Error restoring product stock:', error)
+    return false
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📝 رسائل تغيير الحالة
+// ═══════════════════════════════════════════════════════════════════════════
+function getStatusChangeMessage(status: OrderStatus): string {
+  const messages: Record<OrderStatus, string> = {
+    pending: 'تم إرجاع الطلب إلى حالة الانتظار',
+    processing: 'تم بدء تحضير الطلب',
+    shipped: 'تم شحن الطلب بنجاح',
+    delivered: 'تم تسليم الطلب بنجاح',
+    completed: 'تم إكمال الطلب بنجاح',
+    cancelled: 'تم إلغاء الطلب',
+    rejected: 'تم رفض الطلب',
+  }
+  return messages[status]
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📊 الحصول على إحصائيات الطلبات حسب الحالة
+// ═══════════════════════════════════════════════════════════════════════════
+export async function getOrdersStats() {
+  try {
+    await connectToDatabase()
+
+    const stats = await Order.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$totalPrice' },
+        },
+      },
+    ])
+
+    const totalOrders = await Order.countDocuments()
+    const paidOrders = await Order.countDocuments({ isPaid: true })
+    const deliveredOrders = await Order.countDocuments({ isDelivered: true })
+    const pendingOrders = await Order.countDocuments({ 
+      $or: [
+        { status: 'pending' },
+        { status: { $exists: false } }
+      ]
+    })
+
+    const totalRevenue = await Order.aggregate([
+      { $match: { isPaid: true } },
+      { $group: { _id: null, total: { $sum: '$totalPrice' } } },
+    ])
+
+    return {
+      success: true,
+      data: {
+        totalOrders,
+        paidOrders,
+        deliveredOrders,
+        pendingOrders,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        statusBreakdown: stats.reduce((acc, curr) => {
+          acc[curr._id || 'pending'] = {
+            count: curr.count,
+            totalAmount: curr.totalAmount,
+          }
+          return acc
+        }, {} as Record<string, { count: number; totalAmount: number }>),
+      },
+    }
+  } catch (err) {
+    return { success: false, message: formatError(err) }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 📋 الحصول على الطلبات حسب الحالة
+// ═══════════════════════════════════════════════════════════════════════════
+export async function getOrdersByStatus({
+  status,
+  limit,
+  page,
+}: {
+  status?: OrderStatus
+  limit?: number
+  page: number
+}) {
+  const {
+    common: { pageSize },
+  } = await getSetting()
+  limit = limit || pageSize
+  await connectToDatabase()
+  
+  const skipAmount = (Number(page) - 1) * limit
+  
+  const query = status 
+    ? { status } 
+    : {}
+  
+  const orders = await Order.find(query)
+    .populate('user', 'name email')
+    .sort({ createdAt: 'desc' })
+    .skip(skipAmount)
+    .limit(limit)
+    
+  const ordersCount = await Order.countDocuments(query)
+  
+  return {
+    data: JSON.parse(JSON.stringify(orders)) as IOrderList[],
+    totalPages: Math.ceil(ordersCount / limit),
+    totalOrders: ordersCount,
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 🔄 تحديث متعدد للطلبات (Bulk Update)
+// ═══════════════════════════════════════════════════════════════════════════
+export async function bulkUpdateOrderStatus(
+  orderIds: string[],
+  status: OrderStatus
+) {
+  try {
+    await connectToDatabase()
+    
+    const session = await auth()
+    if (!session || session.user.role !== 'Admin') {
+      throw new Error('غير مصرح لك بتنفيذ هذا الإجراء')
+    }
+
+    const results = await Promise.allSettled(
+      orderIds.map(id => updateOrderStatus(id, status))
+    )
+
+    const successful = results.filter(
+      r => r.status === 'fulfilled' && (r.value as { success: boolean }).success
+    ).length
+    const failed = results.length - successful
+
+    revalidatePath('/admin/orders')
+
+    return {
+      success: true,
+      message: `تم تحديث ${successful} طلب بنجاح${failed > 0 ? ` (فشل ${failed})` : ''}`,
+      data: { successful, failed, total: orderIds.length },
+    }
+  } catch (err) {
+    return { success: false, message: formatError(err) }
+  }
 }
