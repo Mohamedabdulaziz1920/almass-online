@@ -37,6 +37,7 @@ export type IProduct = IProductInput & {
   createdAt: Date
   updatedAt: Date
 }
+export type ProductType = IProduct
 // ---------------------------------------------
 
 export type Data = {
@@ -94,3 +95,11 @@ export type SiteLanguage = z.infer<typeof SiteLanguageSchema>
 export type SiteCurrency = z.infer<typeof SiteCurrencySchema>
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>
 export type DeliveryDate = z.infer<typeof DeliveryDateSchema>
+// 2. أضف تعريفات الفئة (Category)
+export type ICategoryInput = z.infer<typeof CategoryInputSchema>
+
+export type CategoryType = ICategoryInput & {
+  _id: string
+  createdAt: Date
+  updatedAt: Date
+}
