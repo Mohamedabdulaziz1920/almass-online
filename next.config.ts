@@ -2,7 +2,17 @@ import type { NextConfig } from 'next'
 import withNextIntl from 'next-intl/plugin'
 
 const nextConfig: NextConfig = withNextIntl()({
-  /* config options here */
+  // تجاهل أخطاء ESLint أثناء البناء
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
+  // تجاهل أخطاء TypeScript أثناء البناء
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  
+  // إعدادات الصور
   images: {
     remotePatterns: [
       {

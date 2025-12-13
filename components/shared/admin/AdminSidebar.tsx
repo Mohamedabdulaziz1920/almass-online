@@ -19,13 +19,85 @@ import {
   Sparkles,
   X,
   Shield,
+  ChevronDown,
+  ChevronLeft,
+  Building2,
+  Palette,
+  ImageIcon,
+  Languages,
+  CircleDollarSign,
+  CreditCard,
+  Truck,
 } from 'lucide-react'
 import { useSidebar } from '@/context/sidebar-context'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { SignOut } from '@/lib/actions/user.actions'
+import { useState, useEffect } from 'react'
 
 // ═══════════════════════════════════════════════════════════════
-// 📋 تعريف الروابط
+// 📋 تعريف الروابط الفرعية للإعدادات
+// ═══════════════════════════════════════════════════════════════
+const settingsSubLinks = [
+  {
+    key: 'siteInfo',
+    label: 'معلومات الموقع',
+    href: '/admin/settings/site-info',  // ✅ رابط مباشر
+    icon: Building2,
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/10',
+  },
+  {
+    key: 'common',
+    label: 'الإعدادات العامة',
+    href: '/admin/settings/common',
+    icon: Palette,
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/10',
+  },
+  {
+    key: 'carousels',
+    label: 'السلايدر',
+    href: '/admin/settings/carousels',
+    icon: ImageIcon,
+    color: 'text-pink-400',
+    bgColor: 'bg-pink-500/10',
+  },
+  {
+    key: 'languages',
+    label: 'اللغات',
+    href: '/admin/settings/languages',
+    icon: Languages,
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
+  },
+  {
+    key: 'currencies',
+    label: 'العملات',
+    href: '/admin/settings/currencies',
+    icon: CircleDollarSign,
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/10',
+  },
+  {
+    key: 'paymentMethods',
+    label: 'طرق الدفع',
+    href: '/admin/settings/payment-methods',
+    icon: CreditCard,
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/10',
+  },
+  {
+    key: 'deliveryDates',
+    label: 'مواعيد التوصيل',
+    href: '/admin/settings/delivery-dates',
+    icon: Truck,
+    color: 'text-orange-400',
+    bgColor: 'bg-orange-500/10',
+  },
+]
+
+// ═══════════════════════════════════════════════════════════════
+// 📋 تعريف الروابط الرئيسية
 // ═══════════════════════════════════════════════════════════════
 const sidebarLinks = [
   {
@@ -77,14 +149,6 @@ const sidebarLinks = [
     bgColor: 'bg-pink-500/10',
     textColor: 'text-pink-400',
   },
-  {
-    key: 'settings',
-    href: '/admin/settings',
-    icon: Settings,
-    gradient: 'from-slate-400 to-gray-500',
-    bgColor: 'bg-slate-500/10',
-    textColor: 'text-slate-400',
-  },
 ]
 
 // ═══════════════════════════════════════════════════════════════
@@ -97,6 +161,32 @@ export default function AdminSidebar() {
   const locale = useLocale()
   const isRTL = locale === 'ar'
   const { isOpen, close } = useSidebar()
+  
+  // حالة فتح قائمة الإعدادات الفرعية
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const isSettingsActive = pathname.includes('/admin/settings')
+
+  // فتح قائمة الإعدادات تلقائياً إذا كنا في صفحة الإعدادات
+  useEffect(() => {
+    if (isSettingsActive) {
+      setIsSettingsOpen(true)
+    }
+  }, [isSettingsActive])
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎯 معالجة التنقل للإعدادات الفرعية
+  // ═══════════════════════════════════════════════════════════════
+  const handleSettingsSubLinkClick = (hash: string) => {
+    // إذا كنا في صفحة الإعدادات، نتنقل مباشرة للقسم
+    if (isSettingsActive) {
+      const element = document.querySelector(hash.replace('#', '#'))
+      if (element) {
+        const top = element.getBoundingClientRect().top + window.scrollY - 100
+        window.scrollTo({ top, behavior: 'smooth' })
+      }
+    }
+    close() // إغلاق السايدبار على الموبايل
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // 🎯 مكون معلومات المستخدم
@@ -158,7 +248,7 @@ export default function AdminSidebar() {
           <Link
             key={item.href}
             href={item.href}
-            onClick={() => close()} // إغلاق السايدبار عند اختيار رابط
+            onClick={() => close()}
             className={cn(
               'group relative flex items-center gap-3 rounded-xl px-3 py-3 transition-all duration-300',
               isActive
@@ -200,6 +290,91 @@ export default function AdminSidebar() {
           </Link>
         )
       })}
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ⚙️ قسم الإعدادات مع القائمة الفرعية */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      <div className="pt-4 mt-4 border-t border-gray-800/50">
+        <h3 className="px-3 mb-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          الإعدادات
+        </h3>
+
+        {/* زر الإعدادات الرئيسي */}
+        <button
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          className={cn(
+            'group relative flex items-center gap-3 rounded-xl px-3 py-3 w-full transition-all duration-300',
+            isSettingsActive
+              ? 'bg-gradient-to-r from-slate-500 to-gray-600 text-white shadow-lg'
+              : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+          )}
+        >
+          {isSettingsActive && (
+            <span className={cn(
+              'absolute top-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-white/50',
+              isRTL ? 'right-0' : 'left-0'
+            )} />
+          )}
+
+          <div className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-300',
+            isSettingsActive ? 'bg-white/20' : 'bg-slate-500/10 group-hover:scale-110'
+          )}>
+            <Settings className={cn(
+              'h-5 w-5 transition-all duration-300',
+              isSettingsActive ? 'text-white' : 'text-slate-400'
+            )} />
+          </div>
+
+          <span className="flex-1 font-medium text-right">{t('links.settings')}</span>
+
+          <ChevronDown className={cn(
+            'h-4 w-4 transition-transform duration-300',
+            isSettingsOpen ? 'rotate-180' : ''
+          )} />
+
+          {isSettingsActive && (
+            <Sparkles className="h-4 w-4 text-white/70 animate-pulse" />
+          )}
+        </button>
+
+        {/* القائمة الفرعية للإعدادات */}
+        <div className={cn(
+          'overflow-hidden transition-all duration-300 ease-in-out',
+          isSettingsOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+        )}>
+          <div className="mt-2 mr-3 pr-3 border-r-2 border-gray-700/50 space-y-1">
+            {settingsSubLinks.map((subItem) => {
+              const SubIcon = subItem.icon
+              
+              return (
+                <Link
+                  key={subItem.key}
+                  href={`/admin/settings${subItem.hash}`}
+                  onClick={() => handleSettingsSubLinkClick(subItem.hash)}
+                  className={cn(
+                    'group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200',
+                    'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                  )}
+                >
+                  <div className={cn(
+                    'flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200',
+                    subItem.bgColor,
+                    'group-hover:scale-110'
+                  )}>
+                    <SubIcon className={cn('h-4 w-4', subItem.color)} />
+                  </div>
+                  <span className="text-sm">{subItem.label}</span>
+                  <ChevronLeft className={cn(
+                    'h-3 w-3 mr-auto opacity-0 group-hover:opacity-100 transition-opacity',
+                    isRTL ? 'rotate-180' : ''
+                  )} />
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      </div>
     </nav>
   )
 
