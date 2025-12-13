@@ -14,19 +14,16 @@ import {
   Truck,
   CheckCircle,
   Clock,
-  AlertCircle,
   Loader2,
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  Hash,
   ShoppingBag,
   Receipt,
   Percent,
   DollarSign,
   Tag,
   Box,
-  Calendar,
   MessageSquare,
   Send,
   Copy,
@@ -36,15 +33,11 @@ import {
   PackageCheck,
   Settings,
   AlertTriangle,
-  Play,
-  Pause,
   RotateCcw,
   Ban,
-  ThumbsUp,
-  ThumbsDown,
   Sparkles,
 } from 'lucide-react'
-import { formatDateTime, formatId } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import {
   deliverOrder,
   updateOrderToPaid,
@@ -52,6 +45,7 @@ import {
 } from '@/lib/actions/order.actions'
 import { useToast } from '@/hooks/use-toast'
 import ProductPrice from '@/components/shared/product/product-price'
+import { OrderStatus } from '@/types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 تعريف حالات الطلب
@@ -146,8 +140,52 @@ const orderStatusConfig = {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 أنواع البيانات
 // ═══════════════════════════════════════════════════════════════════════════
+interface OrderItem {
+  product: string
+  name: string
+  image: string
+  price: number
+  quantity: number
+  color?: string
+  size?: string
+}
+
+interface ShippingAddress {
+  fullName: string
+  phone: string
+  street: string
+  city: string
+  province: string
+  country: string
+  postalCode: string
+}
+
+interface OrderUser {
+  _id?: string
+  name: string
+  email: string
+}
+
+interface Order {
+  _id: string
+  user?: OrderUser
+  shippingAddress?: ShippingAddress
+  items?: OrderItem[]
+  itemsPrice?: number
+  shippingPrice?: number
+  taxPrice?: number
+  totalPrice?: number
+  discount?: number
+  isPaid: boolean
+  paidAt?: Date
+  isDelivered: boolean
+  deliveredAt?: Date
+  notes?: string
+  createdAt: Date
+}
+
 interface OrderDetailsFormProps {
-  order: any
+  order: Order
   isAdmin: boolean
   currentStatus: string
 }
@@ -155,25 +193,25 @@ interface OrderDetailsFormProps {
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 مكون أزرار تغيير الحالة
 // ═══════════════════════════════════════════════════════════════════════════
-function StatusActionButtons({ 
-  currentStatus, 
-  onStatusChange, 
-  isPending 
-}: { 
+function StatusActionButtons({
+  currentStatus,
+  onStatusChange,
+  isPending,
+}: {
   currentStatus: string
   onStatusChange: (status: string) => void
-  isPending: boolean 
+  isPending: boolean
 }) {
-  const [showConfirmDialog, setShowConfirmDialog] = useState<string | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState<string | null>(
+    null
+  )
 
   const statusButtons = [
     {
       status: 'pending',
       label: 'جاري الانتظار',
       icon: Hourglass,
-      color: 'amber',
       gradient: 'from-amber-500 to-orange-500',
-      hoverGradient: 'hover:from-amber-600 hover:to-orange-600',
       shadow: 'shadow-amber-500/25 hover:shadow-amber-500/40',
       description: 'إرجاع الطلب للانتظار',
     },
@@ -181,9 +219,7 @@ function StatusActionButtons({
       status: 'processing',
       label: 'قيد التحضير',
       icon: Package,
-      color: 'blue',
       gradient: 'from-blue-500 to-cyan-500',
-      hoverGradient: 'hover:from-blue-600 hover:to-cyan-600',
       shadow: 'shadow-blue-500/25 hover:shadow-blue-500/40',
       description: 'بدء تحضير الطلب',
     },
@@ -191,9 +227,7 @@ function StatusActionButtons({
       status: 'shipped',
       label: 'تم الشحن',
       icon: Truck,
-      color: 'violet',
       gradient: 'from-violet-500 to-purple-500',
-      hoverGradient: 'hover:from-violet-600 hover:to-purple-600',
       shadow: 'shadow-violet-500/25 hover:shadow-violet-500/40',
       description: 'الطلب في الطريق',
     },
@@ -201,9 +235,7 @@ function StatusActionButtons({
       status: 'completed',
       label: 'مكتمل',
       icon: CheckCircle,
-      color: 'emerald',
       gradient: 'from-emerald-500 to-green-500',
-      hoverGradient: 'hover:from-emerald-600 hover:to-green-600',
       shadow: 'shadow-emerald-500/25 hover:shadow-emerald-500/40',
       description: 'إكمال الطلب بنجاح',
     },
@@ -211,9 +243,7 @@ function StatusActionButtons({
       status: 'rejected',
       label: 'رفض',
       icon: XCircle,
-      color: 'red',
       gradient: 'from-red-500 to-rose-500',
-      hoverGradient: 'hover:from-red-600 hover:to-rose-600',
       shadow: 'shadow-red-500/25 hover:shadow-red-500/40',
       description: 'رفض الطلب',
       isDanger: true,
@@ -252,11 +282,12 @@ function StatusActionButtons({
               className={`
                 group relative flex flex-col items-center gap-2 p-4 rounded-2xl
                 transition-all duration-300
-                ${isActive 
-                  ? `bg-gradient-to-br ${btn.gradient} text-white shadow-lg ${btn.shadow}` 
-                  : btn.isDanger
-                    ? 'bg-gray-800/50 text-gray-400 hover:bg-red-500/10 hover:text-red-400 border border-gray-700/50 hover:border-red-500/30'
-                    : 'bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700/50 hover:border-gray-600'
+                ${
+                  isActive
+                    ? `bg-gradient-to-br ${btn.gradient} text-white shadow-lg ${btn.shadow}`
+                    : btn.isDanger
+                      ? 'bg-gray-800/50 text-gray-400 hover:bg-red-500/10 hover:text-red-400 border border-gray-700/50 hover:border-red-500/30'
+                      : 'bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700/50 hover:border-gray-600'
                 }
                 ${isDisabled && !isActive ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 ${!isDisabled && !isActive ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}
@@ -271,16 +302,19 @@ function StatusActionButtons({
               )}
 
               {/* الأيقونة */}
-              <div className={`
+              <div
+                className={`
                 flex h-12 w-12 items-center justify-center rounded-xl
                 transition-all duration-300
-                ${isActive 
-                  ? 'bg-white/20' 
-                  : btn.isDanger
-                    ? 'bg-red-500/10 group-hover:bg-red-500/20'
-                    : 'bg-gray-700/50 group-hover:bg-gray-700'
+                ${
+                  isActive
+                    ? 'bg-white/20'
+                    : btn.isDanger
+                      ? 'bg-red-500/10 group-hover:bg-red-500/20'
+                      : 'bg-gray-700/50 group-hover:bg-gray-700'
                 }
-              `}>
+              `}
+              >
                 {isPending && currentStatus !== btn.status ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
@@ -289,12 +323,16 @@ function StatusActionButtons({
               </div>
 
               {/* التسمية */}
-              <span className={`text-sm font-semibold ${isActive ? 'text-white' : ''}`}>
+              <span
+                className={`text-sm font-semibold ${isActive ? 'text-white' : ''}`}
+              >
                 {btn.label}
               </span>
 
               {/* الوصف */}
-              <span className={`text-xs text-center ${isActive ? 'text-white/70' : 'text-gray-500'}`}>
+              <span
+                className={`text-xs text-center ${isActive ? 'text-white/70' : 'text-gray-500'}`}
+              >
                 {btn.description}
               </span>
             </button>
@@ -371,9 +409,16 @@ function OrderProgressBar({ currentStatus }: { currentStatus: string }) {
     { status: 'completed', label: 'مكتمل', icon: CheckCircle },
   ]
 
-  const statusOrder = ['pending', 'processing', 'shipped', 'delivered', 'completed']
+  const statusOrder = [
+    'pending',
+    'processing',
+    'shipped',
+    'delivered',
+    'completed',
+  ]
   const currentIndex = statusOrder.indexOf(currentStatus)
-  const isRejected = currentStatus === 'rejected' || currentStatus === 'cancelled'
+  const isRejected =
+    currentStatus === 'rejected' || currentStatus === 'cancelled'
 
   if (isRejected) {
     return (
@@ -384,7 +429,9 @@ function OrderProgressBar({ currentStatus }: { currentStatus: string }) {
           </div>
           <div>
             <p className="text-lg font-bold text-red-400">
-              {currentStatus === 'rejected' ? 'تم رفض الطلب' : 'تم إلغاء الطلب'}
+              {currentStatus === 'rejected'
+                ? 'تم رفض الطلب'
+                : 'تم إلغاء الطلب'}
             </p>
             <p className="text-sm text-gray-400">لا يمكن متابعة هذا الطلب</p>
           </div>
@@ -397,9 +444,9 @@ function OrderProgressBar({ currentStatus }: { currentStatus: string }) {
     <div className="relative">
       {/* الخط الخلفي */}
       <div className="absolute top-6 right-6 left-6 h-1 bg-gray-700/50 rounded-full" />
-      
+
       {/* الخط المتقدم */}
-      <div 
+      <div
         className="absolute top-6 right-6 h-1 bg-gradient-to-l from-emerald-500 to-blue-500 rounded-full transition-all duration-500"
         style={{ width: `${(currentIndex / (steps.length - 1)) * 100}%` }}
       />
@@ -414,17 +461,22 @@ function OrderProgressBar({ currentStatus }: { currentStatus: string }) {
           return (
             <div key={step.status} className="flex flex-col items-center">
               {/* الدائرة */}
-              <div className={`
+              <div
+                className={`
                 relative flex h-12 w-12 items-center justify-center rounded-full
                 transition-all duration-500
-                ${isCompleted 
-                  ? 'bg-gradient-to-br from-emerald-500 to-green-500 shadow-lg shadow-emerald-500/30' 
-                  : 'bg-gray-800 border-2 border-gray-700'
+                ${
+                  isCompleted
+                    ? 'bg-gradient-to-br from-emerald-500 to-green-500 shadow-lg shadow-emerald-500/30'
+                    : 'bg-gray-800 border-2 border-gray-700'
                 }
                 ${isCurrent ? 'ring-4 ring-emerald-500/20' : ''}
-              `}>
-                <Icon className={`h-5 w-5 ${isCompleted ? 'text-white' : 'text-gray-500'}`} />
-                
+              `}
+              >
+                <Icon
+                  className={`h-5 w-5 ${isCompleted ? 'text-white' : 'text-gray-500'}`}
+                />
+
                 {/* مؤشر الحالة الحالية */}
                 {isCurrent && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -435,10 +487,12 @@ function OrderProgressBar({ currentStatus }: { currentStatus: string }) {
               </div>
 
               {/* التسمية */}
-              <span className={`
+              <span
+                className={`
                 mt-2 text-xs font-medium
                 ${isCompleted ? 'text-emerald-400' : 'text-gray-500'}
-              `}>
+              `}
+              >
                 {step.label}
               </span>
             </div>
@@ -452,7 +506,11 @@ function OrderProgressBar({ currentStatus }: { currentStatus: string }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // 📦 مكون تفاصيل الطلب الكامل
 // ═══════════════════════════════════════════════════════════════════════════
-export default function OrderDetailsForm({ order, isAdmin, currentStatus }: OrderDetailsFormProps) {
+export default function OrderDetailsForm({
+  order,
+  isAdmin,
+  currentStatus,
+}: OrderDetailsFormProps) {
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -466,7 +524,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
     notes: false,
   })
 
-  const statusConfig = orderStatusConfig[currentStatus as keyof typeof orderStatusConfig] || orderStatusConfig.pending
+  const statusConfig =
+    orderStatusConfig[currentStatus as keyof typeof orderStatusConfig] ||
+    orderStatusConfig.pending
 
   // نسخ النص
   const copyToClipboard = (text: string, field: string) => {
@@ -481,7 +541,7 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
 
   // تبديل القسم
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }))
@@ -491,7 +551,10 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
   const handleStatusChange = (newStatus: string) => {
     startTransition(async () => {
       try {
-        const res = await updateOrderStatus(order._id, newStatus)
+        const res = await updateOrderStatus(
+          order._id,
+          newStatus as OrderStatus
+        )
         if (!res.success) {
           toast({
             title: 'خطأ',
@@ -504,7 +567,7 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
             description: `تم تحديث حالة الطلب إلى "${orderStatusConfig[newStatus as keyof typeof orderStatusConfig]?.label || newStatus}"`,
           })
         }
-      } catch (error) {
+      } catch {
         toast({
           title: 'خطأ',
           description: 'حدث خطأ غير متوقع',
@@ -565,17 +628,23 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
             className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-gray-800/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${statusConfig.gradientBg} border ${statusConfig.border}`}>
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${statusConfig.gradientBg} border ${statusConfig.border}`}
+              >
                 <Settings className={`h-5 w-5 ${statusConfig.color}`} />
               </div>
               <div className="text-right">
                 <h3 className="text-base font-semibold text-white flex items-center gap-2">
                   إدارة حالة الطلب
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.color} border ${statusConfig.border}`}>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.color} border ${statusConfig.border}`}
+                  >
                     {statusConfig.label}
                   </span>
                 </h3>
-                <p className="text-xs text-gray-400">تغيير حالة الطلب ومتابعة التقدم</p>
+                <p className="text-xs text-gray-400">
+                  تغيير حالة الطلب ومتابعة التقدم
+                </p>
               </div>
             </div>
             {expandedSections.status ? (
@@ -679,8 +748,12 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                   <User className="h-5 w-5 text-violet-400" />
                 </div>
                 <div className="text-right">
-                  <h3 className="text-base font-semibold text-white">معلومات العميل</h3>
-                  <p className="text-xs text-gray-400">بيانات المشتري وطريقة التواصل</p>
+                  <h3 className="text-base font-semibold text-white">
+                    معلومات العميل
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    بيانات المشتري وطريقة التواصل
+                  </p>
                 </div>
               </div>
               {expandedSections.customer ? (
@@ -702,11 +775,15 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500">الاسم الكامل</p>
                       <p className="text-sm font-medium text-white truncate">
-                        {order.user?.name || order.shippingAddress?.fullName || 'غير محدد'}
+                        {order.user?.name ||
+                          order.shippingAddress?.fullName ||
+                          'غير محدد'}
                       </p>
                     </div>
                     <button
-                      onClick={() => copyToClipboard(order.user?.name || '', 'name')}
+                      onClick={() =>
+                        copyToClipboard(order.user?.name || '', 'name')
+                      }
                       className="p-1.5 rounded-lg hover:bg-gray-700/50 transition-colors"
                     >
                       {copiedField === 'name' ? (
@@ -729,7 +806,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                       </p>
                     </div>
                     <button
-                      onClick={() => copyToClipboard(order.user?.email || '', 'email')}
+                      onClick={() =>
+                        copyToClipboard(order.user?.email || '', 'email')
+                      }
                       className="p-1.5 rounded-lg hover:bg-gray-700/50 transition-colors"
                     >
                       {copiedField === 'email' ? (
@@ -747,12 +826,20 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-500">رقم الهاتف</p>
-                      <p className="text-sm font-medium text-white truncate" dir="ltr">
+                      <p
+                        className="text-sm font-medium text-white truncate"
+                        dir="ltr"
+                      >
                         {order.shippingAddress?.phone || 'غير محدد'}
                       </p>
                     </div>
                     <button
-                      onClick={() => copyToClipboard(order.shippingAddress?.phone || '', 'phone')}
+                      onClick={() =>
+                        copyToClipboard(
+                          order.shippingAddress?.phone || '',
+                          'phone'
+                        )
+                      }
                       className="p-1.5 rounded-lg hover:bg-gray-700/50 transition-colors"
                     >
                       {copiedField === 'phone' ? (
@@ -798,7 +885,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                   <MapPin className="h-5 w-5 text-cyan-400" />
                 </div>
                 <div className="text-right">
-                  <h3 className="text-base font-semibold text-white">عنوان الشحن</h3>
+                  <h3 className="text-base font-semibold text-white">
+                    عنوان الشحن
+                  </h3>
                   <p className="text-xs text-gray-400">موقع توصيل الطلب</p>
                 </div>
               </div>
@@ -822,9 +911,11 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                           <p className="text-sm text-white leading-relaxed">
                             {order.shippingAddress.street}
                             <br />
-                            {order.shippingAddress.city}, {order.shippingAddress.province}
+                            {order.shippingAddress.city},{' '}
+                            {order.shippingAddress.province}
                             <br />
-                            {order.shippingAddress.country} - {order.shippingAddress.postalCode}
+                            {order.shippingAddress.country} -{' '}
+                            {order.shippingAddress.postalCode}
                           </p>
                         </div>
                       </div>
@@ -851,7 +942,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                         </p>
                       </div>
                       <div className="p-3 rounded-lg bg-gray-800/20 border border-gray-700/20">
-                        <p className="text-xs text-gray-500 mb-1">الرمز البريدي</p>
+                        <p className="text-xs text-gray-500 mb-1">
+                          الرمز البريدي
+                        </p>
                         <p className="text-sm font-medium text-white">
                           {order.shippingAddress.postalCode}
                         </p>
@@ -888,7 +981,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                       {order.items?.length || 0}
                     </span>
                   </h3>
-                  <p className="text-xs text-gray-400">قائمة المنتجات المطلوبة</p>
+                  <p className="text-xs text-gray-400">
+                    قائمة المنتجات المطلوبة
+                  </p>
                 </div>
               </div>
               {expandedSections.items ? (
@@ -902,7 +997,7 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
             {expandedSections.items && (
               <div className="p-4 sm:p-5 pt-0 border-t border-gray-700/30">
                 <div className="space-y-3">
-                  {order.items?.map((item: any, index: number) => (
+                  {order.items?.map((item: OrderItem, index: number) => (
                     <div
                       key={index}
                       className="flex items-center gap-4 p-3 rounded-xl bg-gray-800/30 border border-gray-700/30 hover:border-gray-600/50 transition-colors"
@@ -942,14 +1037,20 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                           )}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          الكمية: <span className="text-white font-medium">{item.quantity}</span>
+                          الكمية:{' '}
+                          <span className="text-white font-medium">
+                            {item.quantity}
+                          </span>
                         </p>
                       </div>
 
                       {/* السعر */}
                       <div className="text-left flex-shrink-0">
                         <p className="text-sm font-bold text-emerald-400">
-                          <ProductPrice price={item.price * item.quantity} plain />
+                          <ProductPrice
+                            price={item.price * item.quantity}
+                            plain
+                          />
                         </p>
                         <p className="text-xs text-gray-500">
                           {item.price} × {item.quantity}
@@ -977,7 +1078,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                 <Receipt className="h-5 w-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white">ملخص الطلب</h3>
+                <h3 className="text-base font-semibold text-white">
+                  ملخص الطلب
+                </h3>
                 <p className="text-xs text-gray-400">تفاصيل المبالغ</p>
               </div>
             </div>
@@ -1018,7 +1121,7 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
               </div>
 
               {/* الخصم */}
-              {order.discount > 0 && (
+              {order.discount && order.discount > 0 && (
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm text-emerald-400 flex items-center gap-2">
                     <Tag className="h-4 w-4" />
@@ -1060,7 +1163,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                   <Clock className="h-5 w-5 text-blue-400" />
                 </div>
                 <div className="text-right">
-                  <h3 className="text-base font-semibold text-white">سجل الطلب</h3>
+                  <h3 className="text-base font-semibold text-white">
+                    سجل الطلب
+                  </h3>
                   <p className="text-xs text-gray-400">تتبع مراحل الطلب</p>
                 </div>
               </div>
@@ -1084,7 +1189,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                       <CheckCircle className="h-4 w-4 text-emerald-400" />
                     </div>
                     <div className="flex-1 pt-1">
-                      <p className="text-sm font-medium text-white">تم إنشاء الطلب</p>
+                      <p className="text-sm font-medium text-white">
+                        تم إنشاء الطلب
+                      </p>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {formatDateTime(order.createdAt).dateTime}
                       </p>
@@ -1093,15 +1200,21 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
 
                   {/* حالة الدفع */}
                   <div className="relative flex items-start gap-4">
-                    <div className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 ${
-                      order.isPaid 
-                        ? 'bg-emerald-500/10 border-emerald-500' 
-                        : 'bg-gray-800 border-gray-600'
-                    }`}>
-                      <CreditCard className={`h-4 w-4 ${order.isPaid ? 'text-emerald-400' : 'text-gray-500'}`} />
+                    <div
+                      className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 ${
+                        order.isPaid
+                          ? 'bg-emerald-500/10 border-emerald-500'
+                          : 'bg-gray-800 border-gray-600'
+                      }`}
+                    >
+                      <CreditCard
+                        className={`h-4 w-4 ${order.isPaid ? 'text-emerald-400' : 'text-gray-500'}`}
+                      />
                     </div>
                     <div className="flex-1 pt-1">
-                      <p className={`text-sm font-medium ${order.isPaid ? 'text-white' : 'text-gray-500'}`}>
+                      <p
+                        className={`text-sm font-medium ${order.isPaid ? 'text-white' : 'text-gray-500'}`}
+                      >
                         {order.isPaid ? 'تم الدفع' : 'في انتظار الدفع'}
                       </p>
                       {order.isPaid && order.paidAt && (
@@ -1114,26 +1227,38 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
 
                   {/* حالة الشحن */}
                   <div className="relative flex items-start gap-4">
-                    <div className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 ${
-                      order.isPaid && !order.isDelivered
-                        ? 'bg-blue-500/10 border-blue-500' 
-                        : order.isDelivered
-                        ? 'bg-emerald-500/10 border-emerald-500'
-                        : 'bg-gray-800 border-gray-600'
-                    }`}>
-                      <Truck className={`h-4 w-4 ${
+                    <div
+                      className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 ${
                         order.isPaid && !order.isDelivered
-                          ? 'text-blue-400' 
+                          ? 'bg-blue-500/10 border-blue-500'
                           : order.isDelivered
-                          ? 'text-emerald-400'
-                          : 'text-gray-500'
-                      }`} />
+                            ? 'bg-emerald-500/10 border-emerald-500'
+                            : 'bg-gray-800 border-gray-600'
+                      }`}
+                    >
+                      <Truck
+                        className={`h-4 w-4 ${
+                          order.isPaid && !order.isDelivered
+                            ? 'text-blue-400'
+                            : order.isDelivered
+                              ? 'text-emerald-400'
+                              : 'text-gray-500'
+                        }`}
+                      />
                     </div>
                     <div className="flex-1 pt-1">
-                      <p className={`text-sm font-medium ${
-                        order.isPaid || order.isDelivered ? 'text-white' : 'text-gray-500'
-                      }`}>
-                        {order.isDelivered ? 'تم التوصيل' : order.isPaid ? 'قيد الشحن' : 'في انتظار الشحن'}
+                      <p
+                        className={`text-sm font-medium ${
+                          order.isPaid || order.isDelivered
+                            ? 'text-white'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        {order.isDelivered
+                          ? 'تم التوصيل'
+                          : order.isPaid
+                            ? 'قيد الشحن'
+                            : 'في انتظار الشحن'}
                       </p>
                       {order.isDelivered && order.deliveredAt && (
                         <p className="text-xs text-gray-400 mt-0.5">
@@ -1145,10 +1270,14 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
 
                   {/* حالة الطلب الحالية */}
                   <div className="relative flex items-start gap-4">
-                    <div className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 ${statusConfig.bg} ${statusConfig.border}`}>
+                    <div
+                      className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 ${statusConfig.bg} ${statusConfig.border}`}
+                    >
                       {(() => {
                         const Icon = statusConfig.icon
-                        return <Icon className={`h-4 w-4 ${statusConfig.color}`} />
+                        return (
+                          <Icon className={`h-4 w-4 ${statusConfig.color}`} />
+                        )
                       })()}
                     </div>
                     <div className="flex-1 pt-1">
@@ -1179,7 +1308,9 @@ export default function OrderDetailsForm({ order, isAdmin, currentStatus }: Orde
                   <MessageSquare className="h-5 w-5 text-violet-400" />
                 </div>
                 <div className="text-right">
-                  <h3 className="text-base font-semibold text-white">ملاحظات</h3>
+                  <h3 className="text-base font-semibold text-white">
+                    ملاحظات
+                  </h3>
                   <p className="text-xs text-gray-400">ملاحظات داخلية</p>
                 </div>
               </div>
